@@ -11,10 +11,11 @@ import NotesPreview from '../../components/NotesPreview';
 import ToolsList from '../../components/ToolsList';
 import ToolDetails from '../../components/ToolDetails';
 import AddToolForm from '../../components/AddToolForm';
+import AIAssistant from '../../components/AIAssistant';
 import Footer from '../../components/Footer';
 import type { AiTool } from '../../types';
 
-type ViewState = 'dashboard' | 'tools' | 'tool-details' | 'addTool';
+type ViewState = 'dashboard' | 'tools' | 'tool-details' | 'addTool' | 'aiAssistant';
 
 export default function DashboardPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -100,6 +101,7 @@ export default function DashboardPage() {
   const showToolsList = () => handleViewChange('tools');
   const showDashboard = () => handleViewChange('dashboard');
   const showAddTool = () => handleViewChange('addTool');
+  const showAIAssistant = () => handleViewChange('aiAssistant');
 
   // Function to check for duplicate tools
   const isDuplicateTool = (newToolData: any): boolean => {
@@ -439,7 +441,7 @@ export default function DashboardPage() {
                     <NotesCard />
                     
                     {/* Action Buttons */}
-                    <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} />
+                    <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} />
                   </div>
 
                   {/* Right Column */}
@@ -473,6 +475,12 @@ export default function DashboardPage() {
                     onSubmit={handleToolSubmit}
                     isSubmitting={isSubmittingTool}
                   />
+                </div>
+              )}
+
+              {currentView === 'aiAssistant' && (
+                <div className="max-w-6xl mx-auto px-6">
+                  <AIAssistant onBack={showDashboard} />
                 </div>
               )}
             </div>

@@ -246,6 +246,33 @@ class ApiService {
     const response: AxiosResponse<UserToolUsage[]> = await this.api.get('/user/history');
     return response.data;
   }
+
+  // AI Assistant - Utility methods for context gathering
+  async getToolsForContext(): Promise<AiTool[]> {
+    const response: AxiosResponse<PaginatedResponse<AiTool>> = await this.api.get('/tools', { 
+      params: { per_page: 50 } 
+    });
+    return response.data.data;
+  }
+
+  async getUserContextForAI(): Promise<{user: User, favoriteTools: AiTool[], recentTools: UserToolUsage[]}> {
+    try {
+      const [user, favoriteTools, recentTools] = await Promise.all([
+        this.getCurrentUser(),
+        this.getFavoriteTools(),
+        this.getToolHistory()
+      ]);
+      
+      return { user, favoriteTools, recentTools };
+    } catch (error) {
+      // Return minimal context if user is not authenticated
+      return { 
+        user: {} as User, 
+        favoriteTools: [], 
+        recentTools: [] 
+      };
+    }
+  }
 }
 
 // Create and export singleton instance

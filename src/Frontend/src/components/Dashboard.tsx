@@ -8,6 +8,7 @@ import ActionButtons from './ActionButtons';
 import NotesPreview from './NotesPreview';
 import ToolsList from './ToolsList';
 import AddToolForm from './AddToolForm';
+import AIAssistant from './AIAssistant';
 import Footer from './Footer';
 import { apiService } from '@/lib/api';
 
@@ -20,7 +21,7 @@ interface DashboardProps {
   onBack: () => void;
 }
 
-type ViewState = 'dashboard' | 'tools' | 'addTool';
+type ViewState = 'dashboard' | 'tools' | 'addTool' | 'aiAssistant';
 
 export default function Dashboard({ user, onBack }: DashboardProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -56,6 +57,10 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
   const showAddTool = () => {
     console.log('Dashboard: showAddTool called');
     handleViewChange('addTool');
+  };
+  const showAIAssistant = () => {
+    console.log('Dashboard: showAIAssistant called');
+    handleViewChange('aiAssistant');
   };
 
   const handleToolSubmit = async (toolData: any) => {
@@ -251,7 +256,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
                   <NotesCard />
                   
                   {/* Action Buttons */}
-                  <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} />
+                  <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} />
                 </div>
 
                 {/* Right Column */}
@@ -275,6 +280,12 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
                   onSubmit={handleToolSubmit}
                   isSubmitting={isSubmittingTool}
                 />
+              </div>
+            )}
+
+            {currentView === 'aiAssistant' && (
+              <div className="max-w-6xl mx-auto px-6">
+                <AIAssistant onBack={showDashboard} />
               </div>
             )}
           </div>

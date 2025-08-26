@@ -1,9 +1,10 @@
 interface ActionButtonsProps {
   onReviewTools?: () => void;
   onAddTool?: () => void;
+  onAIAssistant?: () => void;
 }
 
-export default function ActionButtons({ onReviewTools, onAddTool }: ActionButtonsProps) {
+export default function ActionButtons({ onReviewTools, onAddTool, onAIAssistant }: ActionButtonsProps) {
   const actions = [
     {
       title: 'Review AI Tools',
@@ -38,6 +39,11 @@ export default function ActionButtons({ onReviewTools, onAddTool }: ActionButton
       case 'Add AI Tool':
         if (onAddTool) {
           onAddTool();
+        }
+        break;
+      case 'AI Assistant':
+        if (onAIAssistant) {
+          onAIAssistant();
         }
         break;
       default:

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
+use App\Http\Controllers\Api\AIAssistantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,10 @@ Route::get('/roles/{role}/tools', [RoleController::class, 'tools']);
 
 // Temporary: Allow tool creation without authentication for testing
 Route::post('/tools', [ToolController::class, 'store']);
+
+// AI Assistant - Allow unauthenticated access
+Route::post('/ai-assistant/chat', [AIAssistantController::class, 'chat']);
+Route::post('/ai-assistant/submit-tool', [AIAssistantController::class, 'submitTool']);
 
 // Authentication required routes
 Route::middleware('auth:sanctum')->group(function () {
