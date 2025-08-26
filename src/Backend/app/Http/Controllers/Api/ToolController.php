@@ -1,0 +1,320 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AiTool;
+use App\Models\ToolRating;
+use App\Models\UserToolUsage;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
+
+class ToolController extends Controller
+{
+    /**
+     * Display a listing of the tools.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $query = AiTool::with(['categories', 'roles', 'suggestedForRole']);
+
+        // Filter by category
+        if ($request->has('category')) {
+            $query->whereHas('categories', function ($q) use ($request) {
+                $q->where('slug', $request->category);
+            });
+        }
+
+        // Filter by role
+        if ($request->has('role')) {
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('name', $request->role);
+            });
+        }
+
+        // Filter by pricing type
+        if ($request->has('pricing_type')) {
+            $query->whereJsonContains('pricing_model->type', $request->pricing_type);
+        }
+
+        // Search
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        } else {
+            // Show both active and pending tools for now
+            $query->whereIn('status', ['active', 'pending']);
+        }
+
+        $tools = $query->paginate($request->get('per_page', 15));
+
+        return response()->json($tools);
+    }
+
+    /**
+     * Store a newly created tool.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'website_url' => 'required|url',
+            'api_endpoint' => 'nullable|url',
+            'logo_url' => 'nullable|url',
+            'pricing_model' => 'nullable|array',
+            'features' => 'nullable|array',
+            'integration_type' => 'required|in:redirect,api,webhook',
+            'suggested_for_role' => 'nullable|exists:roles,id',
+            'categories' => 'array',
+            'categories.*' => 'exists:categories,id',
+            'roles' => 'array',
+            'roles.*.id' => 'exists:roles,id',
+            'roles.*.relevance_score' => 'numeric|min:0|max:100',
+        ]);
+
+        $validated['slug'] = Str::slug($validated['name']);
+        $validated['status'] = 'pending';
+        $validated['submitted_by'] = auth()->id() ?? null; // Allow null for unauthenticated submissions
+
+        $tool = AiTool::create($validated);
+
+        if (isset($validated['categories'])) {
+            $tool->categories()->attach($validated['categories']);
+        }
+
+        if (isset($validated['roles'])) {
+            foreach ($validated['roles'] as $role) {
+                $tool->roles()->attach($role['id'], [
+                    'relevance_score' => $role['relevance_score'] ?? 50,
+                    'use_cases' => $role['use_cases'] ?? null,
+                ]);
+            }
+        }
+
+        return response()->json($tool->load(['categories', 'roles']), 201);
+    }
+
+    /**
+     * Display the specified tool.
+     */
+    public function show(string $slug): JsonResponse
+    {
+        $tool = AiTool::where('slug', $slug)
+            ->with(['categories', 'roles', 'suggestedForRole', 'ratings', 'submittedBy'])
+            ->firstOrFail();
+
+        // Calculate average rating
+        $tool->average_rating = $tool->ratings()->avg('rating') ?? 0;
+
+        return response()->json($tool);
+    }
+
+    /**
+     * Search tools.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->get('q', '');
+        
+        if (empty($query)) {
+            return response()->json([]);
+        }
+
+        $tools = AiTool::where('status', 'active')
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('description', 'like', "%{$query}%");
+            })
+            ->with(['categories', 'roles'])
+            ->limit(10)
+            ->get();
+
+        return response()->json($tools);
+    }
+
+    /**
+     * Update the specified tool.
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $tool = AiTool::findOrFail($id);
+
+        // Check authorization
+        if (!auth()->user() || (auth()->id() !== $tool->submitted_by && !auth()->user()->hasRole('admin'))) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+            'website_url' => 'sometimes|url',
+            'api_endpoint' => 'nullable|url',
+            'logo_url' => 'nullable|url',
+            'pricing_model' => 'nullable|array',
+            'features' => 'nullable|array',
+            'integration_type' => 'sometimes|in:redirect,api,webhook',
+            'categories' => 'sometimes|array',
+            'categories.*' => 'exists:categories,id',
+        ]);
+
+        if (isset($validated['name'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+        }
+
+        $tool->update($validated);
+
+        if (isset($validated['categories'])) {
+            $tool->categories()->sync($validated['categories']);
+        }
+
+        return response()->json($tool->load(['categories', 'roles']));
+    }
+
+    /**
+     * Remove the specified tool.
+     */
+    public function destroy(string $id): JsonResponse
+    {
+        $tool = AiTool::findOrFail($id);
+
+        // Check authorization
+        if (!auth()->user() || (auth()->id() !== $tool->submitted_by && !auth()->user()->hasRole('admin'))) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $tool->delete();
+
+        return response()->json(['message' => 'Tool deleted successfully']);
+    }
+
+    /**
+     * Rate a tool.
+     */
+    public function rate(Request $request, string $id): JsonResponse
+    {
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        $tool = AiTool::findOrFail($id);
+
+        $rating = ToolRating::updateOrCreate(
+            [
+                'user_id' => auth()->id(),
+                'tool_id' => $tool->id,
+            ],
+            [
+                'rating' => $validated['rating'],
+                'comment' => $validated['comment'] ?? null,
+            ]
+        );
+
+        return response()->json($rating);
+    }
+
+    /**
+     * Toggle favorite status for a tool.
+     */
+    public function toggleFavorite(string $id): JsonResponse
+    {
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $tool = AiTool::findOrFail($id);
+
+        $usage = UserToolUsage::firstOrCreate(
+            [
+                'user_id' => auth()->id(),
+                'tool_id' => $tool->id,
+            ],
+            [
+                'usage_count' => 0,
+                'is_favorite' => false,
+            ]
+        );
+
+        $usage->is_favorite = !$usage->is_favorite;
+        $usage->save();
+
+        return response()->json(['is_favorite' => $usage->is_favorite]);
+    }
+
+    /**
+     * Track tool usage.
+     */
+    public function trackUsage(string $id): JsonResponse
+    {
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $tool = AiTool::findOrFail($id);
+
+        $usage = UserToolUsage::firstOrCreate(
+            [
+                'user_id' => auth()->id(),
+                'tool_id' => $tool->id,
+            ],
+            [
+                'usage_count' => 0,
+                'is_favorite' => false,
+            ]
+        );
+
+        $usage->usage_count++;
+        $usage->last_used_at = now();
+        $usage->save();
+
+        return response()->json($usage);
+    }
+
+    /**
+     * Get user's favorite tools.
+     */
+    public function favorites(): JsonResponse
+    {
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $tools = AiTool::whereHas('userUsage', function ($query) {
+            $query->where('user_id', auth()->id())
+                  ->where('is_favorite', true);
+        })->with(['categories', 'roles'])->get();
+
+        return response()->json($tools);
+    }
+
+    /**
+     * Get user's tool usage history.
+     */
+    public function history(): JsonResponse
+    {
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $history = UserToolUsage::where('user_id', auth()->id())
+            ->with('tool.categories')
+            ->orderBy('last_used_at', 'desc')
+            ->paginate(20);
+
+        return response()->json($history);
+    }
+}

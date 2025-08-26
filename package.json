@@ -1,0 +1,13 @@
+{
+  "name": "projectaiwp",
+  "version": "1.0.0",
+  "description": "AI Tools Platform",
+  "scripts": {
+    "dev:frontend": "cd src/Frontend && npm run dev",
+    "dev:backend": "cd src/Backend && php artisan serve",
+    "dev:backend-assets": "cd src/Backend && npm run dev",
+    "build:frontend": "cd src/Frontend && npm run build",
+    "build:backend": "cd src/Backend && npm run build",
+    "install:all": "cd src/Frontend && npm install && cd ../Backend && npm install"
+  }
+}
