@@ -5,14 +5,21 @@ import { useRouter } from 'next/navigation';
 import Footer from './Footer';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
+import TwoFactorMethodSelection from './TwoFactorMethodSelection';
+import TwoFactorSetup from './TwoFactorSetup';
+import EmailTwoFactorSetup from './EmailTwoFactorSetup';
+import RecoveryCodes from './RecoveryCodes';
 
-type ViewState = 'landing' | 'login' | 'register';
+type ViewState = 'landing' | 'login' | 'register' | 'method-selection' | 'email-2fa' | 'totp-2fa' | 'recovery-codes';
 
 export default function LandingPage() {
   const [currentView, setCurrentView] = useState<ViewState>('landing');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [nextView, setNextView] = useState<ViewState | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [pendingUser, setPendingUser] = useState<any>(null);
+  const [twoFactorData, setTwoFactorData] = useState<any>(null);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const router = useRouter();
 
   const toggleDarkMode = () => {
@@ -42,6 +49,88 @@ export default function LandingPage() {
   const showDashboard = () => {
     router.push('/dashboard');
   };
+
+  // New Registration Flow Handlers
+  const handleRegistrationSuccess = (user: any) => {
+    setPendingUser(user);
+    handleViewChange('method-selection');
+  };
+
+  const handleMethodSelected = async (method: 'email' | 'totp') => {
+    if (!pendingUser) return;
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+      
+      const csrfResponse = await fetch(`${baseUrl}/sanctum/csrf-cookie`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+
+      const csrfToken = getCookie('XSRF-TOKEN');
+
+      const response = await fetch(`${baseUrl}/api/2fa/setup-method`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(csrfToken ? { 'X-XSRF-TOKEN': decodeURIComponent(csrfToken) } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          user_id: pendingUser.id,
+          method: method
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (method === 'totp') {
+          setTwoFactorData(result.two_factor);
+          handleViewChange('totp-2fa');
+        } else {
+          handleViewChange('email-2fa');
+        }
+      }
+    } catch (error) {
+      console.error('Method setup error:', error);
+    }
+  };
+
+
+  const handle2FASetupComplete = (codes?: string[]) => {
+    if (codes && codes.length > 0) {
+      setRecoveryCodes(codes);
+      handleViewChange('recovery-codes');
+    } else {
+      // Email 2FA completed or no recovery codes
+      setPendingUser(null);
+      handleViewChange('login');
+    }
+  };
+
+  const handleRecoveryCodesComplete = () => {
+    // Clear sensitive data and redirect to login
+    setTwoFactorData(null);
+    setRecoveryCodes([]);
+    setPendingUser(null);
+    handleViewChange('login');
+  };
+
+  const handleLoginSuccess = (user: any) => {
+    // Store user data and redirect to dashboard
+    localStorage.setItem('sanctum_user', JSON.stringify(user));
+    showDashboard();
+  };
   return (
     <div 
       className="relative overflow-hidden"
@@ -64,7 +153,7 @@ export default function LandingPage() {
       />
 
       {/* Main Content Section */}
-      <div className="relative flex items-center justify-center min-h-screen py-12 z-10">
+      <div className="relative flex items-center justify-center min-h-screen py-12 pb-16 md:pb-20 lg:pb-24 z-10">
 
         {/* Content Container with Smooth Fade Transitions */}
         <div className={`relative z-10 text-center px-4 ${
@@ -292,7 +381,7 @@ export default function LandingPage() {
               <LoginForm 
                 onBack={showLanding}
                 onSwitchToRegister={showRegister}
-                onSuccess={showDashboard}
+                onSuccess={handleLoginSuccess}
               />
             </>
           )}
@@ -386,9 +475,40 @@ export default function LandingPage() {
               <RegisterForm 
                 onBack={showLanding}
                 onSwitchToLogin={showLogin}
-                onSuccess={showDashboard}
+                onRegistrationSuccess={handleRegistrationSuccess}
               />
             </>
+          )}
+
+          {currentView === 'method-selection' && pendingUser && (
+            <TwoFactorMethodSelection
+              user={pendingUser}
+              onMethodSelected={handleMethodSelected}
+            />
+          )}
+
+          {currentView === 'totp-2fa' && pendingUser && twoFactorData && (
+            <TwoFactorSetup
+              user={pendingUser}
+              twoFactorData={twoFactorData}
+              onComplete={handle2FASetupComplete}
+              onBack={() => handleViewChange('method-selection')}
+            />
+          )}
+
+          {currentView === 'email-2fa' && pendingUser && (
+            <EmailTwoFactorSetup
+              user={pendingUser}
+              onComplete={() => handle2FASetupComplete()}
+              onBack={() => handleViewChange('method-selection')}
+            />
+          )}
+
+          {currentView === 'recovery-codes' && recoveryCodes.length > 0 && (
+            <RecoveryCodes
+              recoveryCodes={recoveryCodes}
+              onComplete={handleRecoveryCodesComplete}
+            />
           )}
         </div>
       </div>

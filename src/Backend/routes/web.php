@@ -17,4 +17,9 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
+// Temporary dashboard route to prevent 404 errors
+Route::get('/dashboard', function () {
+    return response()->json(['message' => 'Dashboard route accessed', 'success' => true]);
+})->name('dashboard');
+
 require __DIR__.'/auth.php';

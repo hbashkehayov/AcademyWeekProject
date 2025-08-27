@@ -5,6 +5,7 @@ import GreetingCard from './GreetingCard';
 import SuggestedTools from './SuggestedTools';
 import NotesCard from './NotesCard';
 import ActionButtons from './ActionButtons';
+import AdminOperations from './AdminOperations';
 import NotesPreview from './NotesPreview';
 import ToolsList from './ToolsList';
 import AddToolForm from './AddToolForm';
@@ -29,6 +30,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSubmittingTool, setIsSubmittingTool] = useState(false);
+  const [aiSuggestedToolData, setAiSuggestedToolData] = useState<any>(null);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -56,12 +58,20 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
   const showDashboard = () => handleViewChange('dashboard');
   const showAddTool = () => {
     console.log('Dashboard: showAddTool called');
+    setAiSuggestedToolData(null); // Clear any AI suggested data
     handleViewChange('addTool');
   };
   const showAIAssistant = () => {
     console.log('Dashboard: showAIAssistant called');
     handleViewChange('aiAssistant');
   };
+
+  const handleEditAITool = (toolData: any) => {
+    console.log('Dashboard: handleEditAITool called with:', toolData);
+    setAiSuggestedToolData(toolData);
+    handleViewChange('addTool');
+  };
+
 
   const handleToolSubmit = async (toolData: any) => {
     setIsSubmittingTool(true);
@@ -112,62 +122,99 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
               </button>
             </div>
 
-            {/* Full-Width Dropdown */}
+            {/* Full-Width Dropdown - Ultra Transparent with Fluid Animations */}
             <div
               onMouseEnter={() => setIsDropdownOpen(true)}
               onMouseLeave={() => setIsDropdownOpen(false)}
-              className={`fixed left-0 right-0 top-20 transition-all duration-300 z-50 ${
+              className={`fixed left-0 right-0 top-20 transition-all duration-700 ease-out z-50 ${
                 isDropdownOpen 
                   ? 'opacity-100 translate-y-0 pointer-events-auto' 
-                  : 'opacity-0 -translate-y-4 pointer-events-none'
+                  : 'opacity-0 -translate-y-8 pointer-events-none'
               }`}
             >
-              {/* Heavy Backdrop Blur */}
-              <div className="absolute inset-0 backdrop-blur-3xl bg-black/70"></div>
+              {/* Ultra-light Backdrop Blur */}
+              <div className="absolute inset-0 backdrop-blur-2xl bg-black/20"></div>
               
-              <div className="relative mx-4 sm:mx-6 lg:mx-8 rounded-2xl p-8 shadow-2xl border border-white/30 bg-white/30 backdrop-blur-3xl" style={{backgroundColor: 'rgba(255, 255, 255, 0.25)', backdropFilter: 'blur(40px) saturate(180%)'}}>
+              <div 
+                className="relative mx-4 sm:mx-6 lg:mx-8 rounded-3xl p-8 shadow-2xl border border-white/10 transition-all duration-700 ease-out transform"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)', 
+                  backdropFilter: 'blur(30px) saturate(200%)',
+                  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                  transform: isDropdownOpen ? 'scale(1)' : 'scale(0.95)',
+                }}
+              >
                 <div className="max-w-7xl mx-auto">
-                  {/* Navigation Grid with Back to Home */}
+                  {/* Navigation Grid with Enhanced Animations */}
                   <nav>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                      {/* Back to Home as first card */}
+                      {/* Back to Home with Fluid Animation */}
                       <button
                         onClick={onBack}
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/5 backdrop-blur-sm"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          backdropFilter: 'blur(10px)',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                        }}
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">🏠</span>
+                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">🏠</span>
                         <span className="font-medium">Back Home</span>
                         <span className="text-xs text-white/60 mt-1">Return to main</span>
                       </button>
+                      
                       <a
                         href="#"
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/5 backdrop-blur-sm"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          backdropFilter: 'blur(10px)',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                        }}
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">📊</span>
+                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">📊</span>
                         <span className="font-medium">Analytics</span>
                         <span className="text-xs text-white/60 mt-1">View insights</span>
                       </a>
+                      
                       <a
                         href="#"
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/5 backdrop-blur-sm"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          backdropFilter: 'blur(10px)',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                        }}
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">❤️</span>
+                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">❤️</span>
                         <span className="font-medium">My Favourites</span>
                         <span className="text-xs text-white/60 mt-1">Saved tools</span>
                       </a>
+                      
                       <a
                         href="#"
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/5 backdrop-blur-sm"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          backdropFilter: 'blur(10px)',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                        }}
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">📝</span>
+                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">📝</span>
                         <span className="font-medium">My Submissions</span>
                         <span className="text-xs text-white/60 mt-1">Your contributions</span>
                       </a>
+                      
                       <a
                         href="#"
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/5 backdrop-blur-sm"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          backdropFilter: 'blur(10px)',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                        }}
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">⚙️</span>
+                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">⚙️</span>
                         <span className="font-medium">Settings</span>
                         <span className="text-xs text-white/60 mt-1">Preferences</span>
                       </a>
@@ -239,7 +286,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
         </div>
 
         {/* Dashboard Content - Conditional with Animations */}
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 pb-16 md:pb-20 lg:pb-24">
           {/* Content Container with Smooth Fade Transitions */}
           <div className={`transition-all duration-500 ease-out ${
             isTransitioning ? 'opacity-0 transform translate-y-4' : 
@@ -257,6 +304,9 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
                   
                   {/* Action Buttons */}
                   <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} />
+                  
+                  {/* Admin Operations - Only visible for owners */}
+                  <AdminOperations user={user} />
                 </div>
 
                 {/* Right Column */}
@@ -279,13 +329,14 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
                   onBack={showDashboard} 
                   onSubmit={handleToolSubmit}
                   isSubmitting={isSubmittingTool}
+                  initialData={aiSuggestedToolData}
                 />
               </div>
             )}
 
             {currentView === 'aiAssistant' && (
               <div className="max-w-6xl mx-auto px-6">
-                <AIAssistant onBack={showDashboard} />
+                <AIAssistant onBack={showDashboard} onEditTool={handleEditAITool} />
               </div>
             )}
           </div>

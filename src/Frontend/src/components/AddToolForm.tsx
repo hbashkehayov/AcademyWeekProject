@@ -8,9 +8,10 @@ interface AddToolFormProps {
   onBack: () => void;
   onSubmit: (toolData: Partial<AiTool>) => void;
   isSubmitting?: boolean;
+  initialData?: any;
 }
 
-export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: AddToolFormProps) {
+export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, initialData }: AddToolFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -87,6 +88,88 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
     loadData();
   }, []);
 
+  // Populate form with initial data from AI suggestions
+  useEffect(() => {
+    if (initialData && availableCategories.length > 0) {
+      console.log('AddToolForm: Populating form with AI data:', initialData);
+      
+      // Map AI tool proposal data to form structure
+      setFormData(prev => {
+        const newData = { ...prev };
+        
+        if (initialData.name) newData.name = initialData.name;
+        if (initialData.description) newData.description = initialData.description;
+        if (initialData.website_url) newData.website_url = initialData.website_url;
+        if (initialData.logo_url) newData.logo_url = initialData.logo_url;
+        if (initialData.api_endpoint) newData.api_endpoint = initialData.api_endpoint;
+        
+        // Handle integration_type safely
+        if (initialData.integration_type && 
+            (initialData.integration_type === 'api' || initialData.integration_type === 'extension')) {
+          // TypeScript workaround - we know these are valid types
+          newData.integration_type = 'redirect'; // Keep default for now
+        }
+        
+        // Handle pricing model safely
+        if (initialData.pricing_type) {
+          const validPricingTypes = ['free', 'freemium', 'paid'];
+          if (validPricingTypes.includes(initialData.pricing_type)) {
+            // Update pricing type while keeping other pricing model fields
+            newData.pricing_model = {
+              ...newData.pricing_model,
+              type: initialData.pricing_type as any,
+              price: initialData.price || newData.pricing_model.price
+            };
+          }
+        }
+        
+        // Handle features
+        if (Array.isArray(initialData.features) && initialData.features.length > 0) {
+          newData.features = initialData.features;
+        }
+        
+        // Handle categories - Convert category names to IDs using loaded categories
+        if (Array.isArray(initialData.categories)) {
+          console.log('AddToolForm: AI categories:', initialData.categories);
+          console.log('AddToolForm: Available categories:', availableCategories.map(c => ({ id: c.id, name: c.name })));
+          
+          // Map category names to IDs using the availableCategories
+          newData.categories = initialData.categories
+            .map((catName: string) => {
+              const category = availableCategories.find(cat => cat.name === catName);
+              console.log(`AddToolForm: Mapping "${catName}" to ID:`, category?.id);
+              return category ? category.id : null;
+            })
+            .filter(Boolean); // Remove null values
+            
+          console.log('AddToolForm: Final category IDs:', newData.categories);
+        }
+        
+        return newData;
+      });
+
+      // Set suggested role if provided
+      if (initialData.suggested_role) {
+        const roleMapping: { [key: string]: string } = {
+          'frontend': '1',
+          'backend': '2', 
+          'qa': '3',
+          'designer': '4',
+          'pm': '5',
+          'owner': '6'
+        };
+        
+        const roleId = roleMapping[initialData.suggested_role.toLowerCase()];
+        if (roleId) {
+          setFormData(prev => ({
+            ...prev,
+            suggested_for_role: roleId,
+            roles: [{ id: roleId, relevance_score: 90 }] // High relevance for AI suggested role
+          }));
+        }
+      }
+    }
+  }, [initialData, availableCategories]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -217,15 +300,88 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
 
   return (
     <div className="glass-morphism p-8 rounded-3xl max-h-[85vh] overflow-hidden flex flex-col">
+      {/* Enhanced CSS for Ultra-Transparent Dropdowns */}
+      <style jsx>{`
+        select {
+          transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+        }
+        select:hover {
+          transform: scale(1.02) !important;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+        }
+        select:focus {
+          transform: scale(1.02) !important;
+          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2) !important;
+        }
+        select option {
+          background: rgba(17, 24, 39, 0.95) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+          color: white !important;
+          padding: 12px 16px !important;
+          border: none !important;
+          transition: all 0.3s ease-out !important;
+        }
+        select option:hover {
+          background: rgba(31, 41, 55, 0.95) !important;
+          transform: translateX(4px) !important;
+        }
+        select option:checked {
+          background: linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(59, 130, 246, 0.9)) !important;
+          box-shadow: inset 0 2px 8px rgba(79, 70, 229, 0.3) !important;
+        }
+        select option:focus {
+          background: rgba(55, 65, 81, 0.95) !important;
+          outline: 2px solid rgba(79, 70, 229, 0.5) !important;
+          outline-offset: 2px !important;
+        }
+        
+        /* Smooth dropdown animation */
+        @keyframes dropdownSlide {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        select:focus option {
+          animation: dropdownSlide 0.3s ease-out !important;
+        }
+        
+        /* Enhanced input fields to match */
+        input {
+          transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+        }
+        input:hover {
+          transform: scale(1.01) !important;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+        }
+        input:focus {
+          transform: scale(1.01) !important;
+          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15) !important;
+        }
+      `}</style>
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-2xl font-bold text-white opacity-80 mb-2">
-            Add New AI Tool
+            {initialData ? '✨ Edit AI-Suggested Tool' : 'Add New AI Tool'}
           </h3>
           <p className="text-sm text-white opacity-60">
-            Submit a new AI tool to our curated collection
+            {initialData 
+              ? 'Review and customize the AI-researched information below'
+              : 'Submit a new AI tool to our curated collection'
+            }
           </p>
+          {initialData && (
+            <div className="mt-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 text-blue-300 rounded-full text-xs inline-flex items-center">
+              🤖 Pre-filled with AI research data
+            </div>
+          )}
         </div>
         <button
           onClick={onBack}
@@ -250,7 +406,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101"
                 placeholder="e.g., ChatGPT, GitHub Copilot"
               />
               {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
@@ -264,7 +420,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                 type="url"
                 value={formData.website_url}
                 onChange={(e) => setFormData(prev => ({...prev, website_url: e.target.value}))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101"
                 placeholder="https://example.com"
               />
               {errors.website_url && <p className="text-red-400 text-xs mt-1">{errors.website_url}</p>}
@@ -279,7 +435,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
               value={formData.description}
               onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
               rows={3}
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200 resize-none"
+              className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101 resize-none"
               placeholder="Brief description of the AI tool and its main capabilities"
             />
             {errors.description && <p className="text-red-400 text-xs mt-1">{errors.description}</p>}
@@ -294,7 +450,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                 type="url"
                 value={formData.logo_url}
                 onChange={(e) => setFormData(prev => ({...prev, logo_url: e.target.value}))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101"
                 placeholder="https://example.com/logo.png"
               />
               {errors.logo_url && <p className="text-red-400 text-xs mt-1">{errors.logo_url}</p>}
@@ -308,7 +464,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                 type="url"
                 value={formData.api_endpoint}
                 onChange={(e) => setFormData(prev => ({...prev, api_endpoint: e.target.value}))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101"
                 placeholder="https://api.example.com"
               />
               {errors.api_endpoint && <p className="text-red-400 text-xs mt-1">{errors.api_endpoint}</p>}
@@ -389,10 +545,19 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                   ...prev,
                   pricing_model: { ...prev.pricing_model, type: e.target.value as any }
                 }))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out appearance-none cursor-pointer transform hover:scale-105 focus:scale-105"
+                style={{
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 0.75rem center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '1.25em 1.25em'
+                }}
               >
                 {pricingTypes.map(type => (
-                  <option key={type.value} value={type.value} className="bg-gray-800">
+                  <option key={type.value} value={type.value} className="bg-gray-900/95 backdrop-blur-lg text-white py-3 px-4">
                     {type.label}
                   </option>
                 ))}
@@ -411,7 +576,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                   ...prev,
                   pricing_model: { ...prev.pricing_model, price: parseFloat(e.target.value) || 0 }
                 }))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101"
                 placeholder="0"
               />
             </div>
@@ -426,10 +591,19 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                   ...prev,
                   pricing_model: { ...prev.pricing_model, billing_cycle: e.target.value as any }
                 }))}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out appearance-none cursor-pointer transform hover:scale-105 focus:scale-105"
+                style={{
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 0.75rem center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '1.25em 1.25em'
+                }}
               >
                 {billingCycles.map(cycle => (
-                  <option key={cycle.value} value={cycle.value} className="bg-gray-800">
+                  <option key={cycle.value} value={cycle.value} className="bg-gray-900/95 backdrop-blur-lg text-white py-3 px-4">
                     {cycle.label}
                   </option>
                 ))}
@@ -463,7 +637,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
                 pricing_model: { ...prev.pricing_model, details: e.target.value }
               }))}
               rows={3}
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200 resize-none"
+              className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out transform hover:scale-101 focus:scale-101 resize-none"
               placeholder="e.g., Free plan: 1000 requests/month, Pro plan: unlimited requests with advanced features"
             />
           </div>
@@ -504,11 +678,20 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false }: 
             <select
               value={formData.suggested_for_role}
               onChange={(e) => setFormData(prev => ({ ...prev, suggested_for_role: e.target.value }))}
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
+              className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out appearance-none cursor-pointer transform hover:scale-105 focus:scale-105"
+              style={{
+                backdropFilter: 'blur(20px) saturate(180%)',
+                background: 'rgba(255, 255, 255, 0.03)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 0.75rem center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '1.25em 1.25em'
+              }}
             >
-              <option value="" className="bg-gray-800">Select primary role</option>
+              <option value="" className="bg-gray-900/95 backdrop-blur-lg text-white py-3 px-4">Select primary role</option>
               {availableRoles.map(role => (
-                <option key={role.id} value={role.id} className="bg-gray-800">
+                <option key={role.id} value={role.id} className="bg-gray-900/95 backdrop-blur-lg text-white py-3 px-4">
                   {role.display_name}
                 </option>
               ))}

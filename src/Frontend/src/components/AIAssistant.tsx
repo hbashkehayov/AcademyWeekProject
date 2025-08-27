@@ -12,20 +12,23 @@ interface Message {
 
 interface AIAssistantProps {
   onBack: () => void;
+  onEditTool?: (toolData: any) => void;
 }
 
-export default function AIAssistant({ onBack }: AIAssistantProps) {
+export default function AIAssistant({ onBack, onEditTool }: AIAssistantProps) {
+  console.log('AIAssistant: onEditTool prop received:', !!onEditTool);
   const [pendingToolData, setPendingToolData] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your AI assistant for the ProjectAIWP platform. I can help you with questions about AI tools, recommendations based on your role, how to use the platform, and anything else related to this site. What would you like to know?",
+      content: "Hi! I'm your AI assistant for the ProjectAIWP platform. I can help you with:\n\n🔍 **AI Tool Research** - Ask me to research any AI tool and I'll provide detailed descriptions\n📝 **Tool Descriptions** - Get comprehensive information about features, pricing, and use cases\n🎯 **Role Recommendations** - Find tools perfect for your development role\n➕ **Add New Tools** - I can research and add new AI tools to the platform\n🤖 **Platform Help** - Navigate features and understand how everything works\n\nTry asking me something like: \"Research Claude AI\" or \"Tell me about DeepSeek Coder\"",
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResearching, setIsResearching] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -52,6 +55,29 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
     console.log('AI Assistant: Submitting tool to platform:', pendingToolData);
     
     try {
+      // Get CSRF token from cookies
+      const getCsrfToken = () => {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'XSRF-TOKEN') {
+            return decodeURIComponent(value);
+          }
+        }
+        return null;
+      };
+
+      // Ensure we have CSRF cookie
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+      await fetch(`${baseUrl}/sanctum/csrf-cookie`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      const csrfToken = getCsrfToken();
+
       // Map categories and roles to IDs (simplified for now)
       const categoryMapping: { [key: string]: number } = {
         'Code Generation': 1,
@@ -96,6 +122,7 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-XSRF-TOKEN': csrfToken || '',
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -140,13 +167,54 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
       timestamp: new Date()
     };
 
+    // Detect if this is a research request
+    const isResearchRequest = /(?:research|tell me about|describe|what is|add|find)\s+(.+?)(?:\s+tool|\s+AI|$)/i.test(inputMessage.trim());
+    
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
+    
+    if (isResearchRequest) {
+      setIsResearching(true);
+      // Add a research indicator message
+      const researchMessage: Message = {
+        id: (Date.now() + 0.5).toString(),
+        role: 'assistant',
+        content: "🔍 Researching the tool from the internet... This may take a moment.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, researchMessage]);
+    }
 
     try {
       console.log('AI Assistant: Sending request to backend API...');
       console.log('AI Assistant: Message history length:', messages.length);
+
+      // First, get CSRF cookie
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+      const csrfResponse = await fetch(`${baseUrl}/sanctum/csrf-cookie`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      console.log('AI Assistant: CSRF cookie response:', csrfResponse.status);
+
+      // Get CSRF token from cookies
+      const getCsrfToken = () => {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'XSRF-TOKEN') {
+            return decodeURIComponent(value);
+          }
+        }
+        return null;
+      };
+
+      const csrfToken = getCsrfToken();
+      console.log('AI Assistant: CSRF token obtained:', csrfToken ? 'Yes' : 'No');
 
       // Prepare messages for API (excluding the initial welcome message)
       const conversationMessages = messages
@@ -166,6 +234,7 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-XSRF-TOKEN': csrfToken || '',
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -189,15 +258,19 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
       const responseContent = data.content || "Sorry, I couldn't process your request.";
       
       // Parse tool proposal if present
+      console.log('AI Assistant: Checking for tool proposals in response:', responseContent.substring(0, 200) + '...');
       const toolProposalMatch = responseContent.match(/\[TOOL_PROPOSAL\]([\s\S]*?)\[\/TOOL_PROPOSAL\]/);
+      console.log('AI Assistant: Tool proposal match found:', !!toolProposalMatch);
       if (toolProposalMatch) {
         try {
           const toolData = JSON.parse(toolProposalMatch[1].trim());
           setPendingToolData(toolData);
-          console.log('AI Assistant: Tool proposal detected:', toolData);
+          console.log('AI Assistant: Tool proposal detected and set:', toolData);
         } catch (e) {
           console.error('AI Assistant: Failed to parse tool proposal:', e);
         }
+      } else {
+        console.log('AI Assistant: No tool proposal found in response');
       }
 
       // Check if this is a confirmation to add the tool
@@ -213,7 +286,12 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      // Remove research indicator message if it exists and add the real response
+      setMessages(prev => {
+        const filteredMessages = prev.filter(msg => !msg.content.includes("🔍 Researching the tool"));
+        return [...filteredMessages, assistantMessage];
+      });
+      setIsResearching(false);
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
@@ -222,7 +300,12 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
         content: 'Sorry, I encountered an error while processing your request. Please try again.',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      // Remove research indicator on error too
+      setMessages(prev => {
+        const filteredMessages = prev.filter(msg => !msg.content.includes("🔍 Researching the tool"));
+        return [...filteredMessages, errorMessage];
+      });
+      setIsResearching(false);
     } finally {
       setIsLoading(false);
     }
@@ -306,10 +389,15 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
                     <span className="text-white text-sm font-bold">AI</span>
                   </div>
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                    {isResearching && (
+                      <span className="text-xs text-white/70 ml-2">🔍 Researching...</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -319,13 +407,14 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
           <div ref={messagesEndRef} />
         </div>
 
+
         {/* Pending Tool Confirmation */}
         {pendingToolData && (
           <div className="border-t border-white/10 p-4 bg-blue-500/10">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-white/90 font-medium mb-1">
-                  Ready to add "{pendingToolData.name}" to the platform?
+                  Ready to add &quot;{pendingToolData.name}&quot; to the platform?
                 </p>
                 <p className="text-xs text-white/60">
                   This tool will be submitted for review before being publicly available.
@@ -349,6 +438,29 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
                 </button>
                 <button
                   onClick={() => {
+                    console.log('Edit button clicked, pendingToolData:', pendingToolData);
+                    console.log('onEditTool function:', onEditTool);
+                    if (onEditTool) {
+                      onEditTool(pendingToolData);
+                      setPendingToolData(null);
+                    } else {
+                      console.error('onEditTool function not provided to AIAssistant');
+                      // Fallback: show error message
+                      const errorMessage: Message = {
+                        id: Date.now().toString(),
+                        role: 'assistant',
+                        content: 'Sorry, the edit function is not available right now. Please try refreshing the page or contact support.',
+                        timestamp: new Date()
+                      };
+                      setMessages(prev => [...prev, errorMessage]);
+                    }
+                  }}
+                  className="px-4 py-2 bg-yellow-500/20 border border-yellow-400/30 text-yellow-300 rounded-lg hover:bg-yellow-500/30 transition-colors"
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  onClick={() => {
                     setPendingToolData(null);
                     const cancelMessage: Message = {
                       id: Date.now().toString(),
@@ -366,6 +478,40 @@ export default function AIAssistant({ onBack }: AIAssistantProps) {
             </div>
           </div>
         )}
+
+        {/* Quick Action Buttons */}
+        <div className="border-t border-white/10 px-6 py-4 bg-white/5">
+          <div className="flex flex-wrap gap-2 mb-3">
+            <button
+              onClick={() => setInputMessage("Research Claude AI")}
+              className="px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-300 rounded-full text-xs hover:bg-blue-500/30 transition-colors"
+              disabled={isLoading}
+            >
+              Research Claude AI
+            </button>
+            <button
+              onClick={() => setInputMessage("Tell me about Cursor AI")}
+              className="px-3 py-1.5 bg-green-500/20 border border-green-400/30 text-green-300 rounded-full text-xs hover:bg-green-500/30 transition-colors"
+              disabled={isLoading}
+            >
+              Tell me about Cursor AI
+            </button>
+            <button
+              onClick={() => setInputMessage("Describe DeepSeek Coder")}
+              className="px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 text-purple-300 rounded-full text-xs hover:bg-purple-500/30 transition-colors"
+              disabled={isLoading}
+            >
+              Describe DeepSeek Coder
+            </button>
+            <button
+              onClick={() => setInputMessage("What tools are good for frontend developers?")}
+              className="px-3 py-1.5 bg-yellow-500/20 border border-yellow-400/30 text-yellow-300 rounded-full text-xs hover:bg-yellow-500/30 transition-colors"
+              disabled={isLoading}
+            >
+              Frontend Tools
+            </button>
+          </div>
+        </div>
 
         {/* Input Area */}
         <div className="border-t border-white/10 p-6">

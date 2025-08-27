@@ -6,7 +6,7 @@ import ErrorPopup from './ErrorPopup';
 interface RegisterFormProps {
   onBack: () => void;
   onSwitchToLogin: () => void;
-  onSuccess: (user: { name: string; display_name: string; role: string }) => void;
+  onRegistrationSuccess: (user: any) => void;
 }
 
 const roles = [
@@ -14,11 +14,10 @@ const roles = [
   { id: '2', name: 'Backend Developer', description: 'Server-side logic, APIs, databases' },
   { id: '3', name: 'QA Engineer', description: 'Testing, quality assurance, automation' },
   { id: '4', name: 'UI/UX Designer', description: 'Design, prototyping, user experience' },
-  { id: '5', name: 'Project Manager', description: 'Project coordination, team management' },
-  { id: '6', name: 'Product Owner', description: 'Product ownership, strategic decisions' }
+  { id: '5', name: 'Project Manager', description: 'Project coordination, team management' }
 ];
 
-export default function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: RegisterFormProps) {
+export default function RegisterForm({ onBack, onSwitchToLogin, onRegistrationSuccess }: RegisterFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     display_name: '',
@@ -31,6 +30,7 @@ export default function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Reg
   const [isLoading, setIsLoading] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('Registration failed');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +86,17 @@ export default function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Reg
 
       const csrfToken = getCookie('XSRF-TOKEN');
 
+      // Debug: Log the registration attempt details
+      const registrationUrl = `${baseUrl}/api/register`;
+      console.log('Registration attempt:', {
+        url: registrationUrl,
+        baseUrl,
+        email: formData.email,
+        csrfToken: csrfToken ? 'Present' : 'Missing'
+      });
+
       // Then attempt registration
-      const response = await fetch(`${baseUrl}/api/register`, {
+      const response = await fetch(registrationUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,21 +117,38 @@ export default function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Reg
       });
 
       console.log('Registration response status:', response.status);
+      console.log('Registration response URL:', response.url);
+      console.log('Registration response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
-        // Registration successful, get user data from response
+        // Registration successful
         const responseData = await response.json();
         console.log('Registration successful:', responseData);
         
-        const userData = responseData.user;
-        const user = {
-          name: userData.name,
-          display_name: userData.display_name || userData.name,
-          role: userData.role?.name || 'user'
-        };
+        if (responseData.requires_security_setup) {
+          // Redirect to method selection
+          onRegistrationSuccess(responseData.user);
+        } else {
+          // Show success message for legacy flow
+          setShowSuccessMessage(true);
+          
+          // Clear form
+          setFormData({
+            name: '',
+            display_name: '',
+            email: '',
+            phone_number: '',
+            role_id: '',
+            password: '',
+            password_confirmation: ''
+          });
+          
+          // After 2 seconds, redirect to login
+          setTimeout(() => {
+            onSwitchToLogin();
+          }, 2000);
+        }
         
-        localStorage.setItem('sanctum_user', JSON.stringify(user));
-        onSuccess(user);
         return; // Important: return early to avoid showing error popup
       } else if (response.status === 422) {
         // Validation errors
@@ -173,6 +199,21 @@ export default function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Reg
         onForgotPassword={handleForgotPassword}
         message={errorMessage}
       />
+
+      {/* Success Message Toast */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-xl flex items-center space-x-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="font-semibold">Registration Successful!</p>
+              <p className="text-sm">Redirecting to login...</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="glass-morphism mx-auto max-w-2xl px-8 py-8 md:px-12 md:py-12 rounded-3xl my-8">
       {/* Header */}

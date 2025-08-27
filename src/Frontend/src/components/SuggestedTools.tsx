@@ -1,5 +1,5 @@
 interface SuggestedToolsProps {
-  userRole: string;
+  userRole: string | { name: string };
 }
 
 // Mock data for AI tools suggestions based on role
@@ -127,7 +127,9 @@ const toolSuggestions: { [key: string]: Array<{ name: string; description: strin
 };
 
 export default function SuggestedTools({ userRole }: SuggestedToolsProps) {
-  const suggestions = toolSuggestions[userRole] || toolSuggestions.frontend;
+  // Handle both string role and object role
+  const roleName = typeof userRole === 'string' ? userRole : userRole?.name || 'frontend';
+  const suggestions = toolSuggestions[roleName] || toolSuggestions.frontend;
 
   return (
     <div className="glass-morphism p-6 rounded-3xl h-fit">

@@ -34,6 +34,24 @@ class ApiService {
         // For session-based auth, we don't need to set Authorization header
         // The cookies will be sent automatically with credentials: 'include'
         config.withCredentials = true;
+        
+        // Add CSRF token if available
+        const getCsrfToken = () => {
+          const cookies = document.cookie.split(';');
+          for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'XSRF-TOKEN') {
+              return decodeURIComponent(value);
+            }
+          }
+          return null;
+        };
+        
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+          config.headers['X-XSRF-TOKEN'] = csrfToken;
+        }
+        
         return config;
       },
       (error) => {
@@ -89,7 +107,7 @@ class ApiService {
   }
 
   // CSRF token management
-  private async getCsrfCookie(): Promise<void> {
+  async getCsrfCookie(): Promise<void> {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
     console.log('ApiService: Getting CSRF cookie from:', `${baseUrl}/sanctum/csrf-cookie`);
     try {
@@ -186,6 +204,32 @@ class ApiService {
     await this.api.delete(`/tools/${id}`);
   }
 
+  async approveTool(id: string): Promise<AiTool> {
+    await this.getCsrfCookie();
+    const response: AxiosResponse<AiTool> = await this.api.post(`/admin/tools/${id}/approve`);
+    return response.data;
+  }
+
+  async rejectTool(id: string, reason?: string): Promise<void> {
+    await this.getCsrfCookie();
+    await this.api.post(`/admin/tools/${id}/reject`, { reason });
+  }
+
+  async getUsers(): Promise<User[]> {
+    const response: AxiosResponse<{ data: User[] }> = await this.api.get('/admin/users');
+    return response.data.data;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.getCsrfCookie();
+    await this.api.delete(`/admin/users/${userId}`);
+  }
+
+  async getAdminStats(): Promise<any> {
+    const response: AxiosResponse<{ data: any }> = await this.api.get('/admin/stats');
+    return response.data.data;
+  }
+
   async rateTool(toolId: string, rating: number, comment?: string): Promise<ToolRating> {
     const response: AxiosResponse<ToolRating> = await this.api.post(`/tools/${toolId}/rate`, { rating, comment });
     return response.data;
@@ -244,6 +288,43 @@ class ApiService {
 
   async getToolHistory(): Promise<UserToolUsage[]> {
     const response: AxiosResponse<UserToolUsage[]> = await this.api.get('/user/history');
+    return response.data;
+  }
+
+  // 2FA Methods
+  async complete2FASetup(userId: number, verificationCode: string): Promise<{ recovery_codes: string[] }> {
+    await this.getCsrfCookie();
+    const response: AxiosResponse<{ recovery_codes: string[] }> = await this.api.post('/2fa/complete-setup', {
+      user_id: userId,
+      verification_code: verificationCode
+    });
+    return response.data;
+  }
+
+  async sendEmailCode(email: string): Promise<void> {
+    await this.getCsrfCookie();
+    await this.api.post('/2fa/send-email-code', { email });
+  }
+
+  async verify2FALogin(email: string, code: string, method: 'totp' | 'email' | 'recovery'): Promise<{ user: User }> {
+    await this.getCsrfCookie();
+    const response: AxiosResponse<{ user: User }> = await this.api.post('/2fa/verify-login', {
+      email,
+      code,
+      method
+    });
+    return response.data;
+  }
+
+  async get2FAAvailableMethods(email: string): Promise<{ methods: string[] }> {
+    const response: AxiosResponse<{ methods: string[] }> = await this.api.post('/2fa/available-methods', { email });
+    return response.data;
+  }
+
+  async resend2FAQrCode(userId: number): Promise<{ secret: string; qr_code_url: string; qr_code_image: string }> {
+    await this.getCsrfCookie();
+    const response: AxiosResponse<{ secret: string; qr_code_url: string; qr_code_image: string }> = 
+      await this.api.post('/2fa/resend-qr', { user_id: userId });
     return response.data;
   }
 

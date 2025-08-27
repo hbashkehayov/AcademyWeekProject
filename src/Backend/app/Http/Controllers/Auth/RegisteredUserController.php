@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\TwoFactorService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,6 +15,13 @@ use Illuminate\Validation\Rules;
 
 class RegisteredUserController extends Controller
 {
+    protected $twoFactorService;
+
+    public function __construct(TwoFactorService $twoFactorService)
+    {
+        $this->twoFactorService = $twoFactorService;
+    }
+
     /**
      * Handle an incoming registration request.
      *
@@ -39,14 +47,14 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        event(new Registered($user));
+        // Temporarily disable the Registered event to avoid any redirects
+        // event(new Registered($user));
 
-        Auth::login($user);
-
-        // Return user data with role information for the frontend
+        // Return user data without automatic 2FA setup
         return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user->load('role', 'organization')
+            'message' => 'User registered successfully. Please choose your security preferences.',
+            'user' => $user->load('role', 'organization'),
+            'requires_security_setup' => true
         ], 201);
     }
 }

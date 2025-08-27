@@ -7,6 +7,7 @@ import GreetingCard from '../../components/GreetingCard';
 import SuggestedTools from '../../components/SuggestedTools';
 import NotesCard from '../../components/NotesCard';
 import ActionButtons from '../../components/ActionButtons';
+import AdminOperations from '../../components/AdminOperations';
 import NotesPreview from '../../components/NotesPreview';
 import ToolsList from '../../components/ToolsList';
 import ToolDetails from '../../components/ToolDetails';
@@ -27,10 +28,12 @@ export default function DashboardPage() {
   const [isSubmittingTool, setIsSubmittingTool] = useState(false);
   const [existingTools, setExistingTools] = useState<AiTool[]>([]);
   const [toolsRefreshKey, setToolsRefreshKey] = useState(0);
-  const [user, setUser] = useState({
+  const [aiSuggestedToolData, setAiSuggestedToolData] = useState<any>(null);
+  const [user, setUser] = useState<any>({
     name: 'User',
     display_name: 'User',
-    role: 'frontend'
+    role: 'frontend',
+    role_id: null
   });
   const router = useRouter();
 
@@ -100,8 +103,17 @@ export default function DashboardPage() {
 
   const showToolsList = () => handleViewChange('tools');
   const showDashboard = () => handleViewChange('dashboard');
-  const showAddTool = () => handleViewChange('addTool');
+  const showAddTool = () => {
+    setAiSuggestedToolData(null); // Clear any AI suggested data
+    handleViewChange('addTool');
+  };
   const showAIAssistant = () => handleViewChange('aiAssistant');
+
+  const handleEditAITool = (toolData: any) => {
+    console.log('Dashboard: handleEditAITool called with:', toolData);
+    setAiSuggestedToolData(toolData);
+    handleViewChange('addTool');
+  };
 
   // Function to check for duplicate tools
   const isDuplicateTool = (newToolData: any): boolean => {
@@ -442,6 +454,9 @@ export default function DashboardPage() {
                     
                     {/* Action Buttons */}
                     <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} />
+                    
+                    {/* Admin Operations - Only visible for owners */}
+                    <AdminOperations user={user} />
                   </div>
 
                   {/* Right Column */}
@@ -474,13 +489,14 @@ export default function DashboardPage() {
                     onBack={showDashboard} 
                     onSubmit={handleToolSubmit}
                     isSubmitting={isSubmittingTool}
+                    initialData={aiSuggestedToolData}
                   />
                 </div>
               )}
 
               {currentView === 'aiAssistant' && (
                 <div className="max-w-6xl mx-auto px-6">
-                  <AIAssistant onBack={showDashboard} />
+                  <AIAssistant onBack={showDashboard} onEditTool={handleEditAITool} />
                 </div>
               )}
             </div>

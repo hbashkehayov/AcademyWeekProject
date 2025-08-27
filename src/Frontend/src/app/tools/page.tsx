@@ -74,7 +74,7 @@ export default function ToolsPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16 md:pb-20 lg:pb-24">
           <div className="text-center">
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <h3 className="text-lg font-medium text-red-800">Error</h3>
@@ -105,7 +105,7 @@ export default function ToolsPage() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16 md:pb-20 lg:pb-24">
           {/* Filters */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

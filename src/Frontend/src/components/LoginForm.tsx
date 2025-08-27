@@ -50,6 +50,14 @@ export default function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Log
 
       const csrfToken = getCookie('XSRF-TOKEN');
 
+      // Debug: Log the credentials being sent
+      console.log('Login attempt:', {
+        email: formData.email,
+        password: formData.password ? '[HIDDEN]' : 'EMPTY',
+        baseUrl,
+        csrfToken: csrfToken ? 'Present' : 'Missing'
+      });
+
       // Then attempt login
       const response = await fetch(`${baseUrl}/api/login`, {
         method: 'POST',
@@ -70,8 +78,11 @@ export default function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Log
       console.log('Login response status:', response.status);
 
       if (response.ok) {
-        // Login successful, get user data from response
         const responseData = await response.json();
+        
+        // In the new flow, users login directly to dashboard after registration
+        
+        // Regular login successful, get user data from response
         console.log('Login successful:', responseData);
         
         const userData = responseData.user;
@@ -102,12 +113,19 @@ export default function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Log
         // Unauthorized - wrong credentials
         const data = await response.json();
         console.log('Authentication failed:', data);
+        console.log('Failed login attempt with email:', formData.email);
         setErrorMessage('Incorrect email or password. Please try again.');
         setShowErrorPopup(true);
       } else {
         // Other server errors
         const errorData = await response.text();
         console.error('Server error:', response.status, errorData);
+        console.error('Full response details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          body: errorData
+        });
         setErrorMessage('Server error. Please try again later.');
         setShowErrorPopup(true);
       }

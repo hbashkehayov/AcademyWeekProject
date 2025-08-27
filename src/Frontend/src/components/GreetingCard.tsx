@@ -6,7 +6,8 @@ interface GreetingCardProps {
   user: {
     name: string;
     display_name: string;
-    role: string;
+    role: string | { name: string };
+    role_id?: number;
   };
 }
 
@@ -16,7 +17,7 @@ const roleDisplayNames: { [key: string]: string } = {
   qa: 'QA Engineer',
   designer: 'UI/UX Designer',
   pm: 'Project Manager',
-  owner: 'Team Owner'
+  owner: 'Owner'
 };
 
 const roleDescriptions: { [key: string]: string } = {
@@ -44,8 +45,10 @@ export default function GreetingCard({ user }: GreetingCardProps) {
     setGreeting(newGreeting);
   }, []);
 
-  const roleDisplay = roleDisplayNames[user.role] || user.role;
-  const roleDescription = roleDescriptions[user.role] || 'Professional team member';
+  // Handle both string role and object role
+  const roleName = typeof user.role === 'string' ? user.role : user.role?.name || 'frontend';
+  const roleDisplay = roleDisplayNames[roleName] || roleName;
+  const roleDescription = roleDescriptions[roleName] || 'Professional team member';
 
   return (
     <div className="glass-morphism p-6 md:p-8 rounded-3xl">
