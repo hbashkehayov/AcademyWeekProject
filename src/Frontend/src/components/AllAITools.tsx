@@ -30,6 +30,13 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
   const [tools, setTools] = useState<AITool[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTool, setEditingTool] = useState<AITool | null>(null);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -48,6 +55,30 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
   });
   const [availableRoles, setAvailableRoles] = useState<any[]>([]);
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+  
+  // Computed filtered tools
+  const filteredTools = tools.filter(tool => {
+    // Search filter
+    const matchesSearch = searchQuery === '' || 
+      tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (tool.detailed_description && tool.detailed_description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // Category filter
+    const matchesCategory = selectedCategory === 'all' || 
+      (tool.categories && tool.categories.some((cat: any) => 
+        cat.id.toString() === selectedCategory
+      ));
+    
+    // Status filter
+    const matchesStatus = selectedStatus === 'all' || tool.status === selectedStatus;
+    
+    // Role filter
+    const matchesRole = selectedRole === 'all' || 
+      (tool.suggested_for_role && tool.suggested_for_role.id.toString() === selectedRole);
+    
+    return matchesSearch && matchesCategory && matchesStatus && matchesRole;
+  });
 
   useEffect(() => {
     fetchActiveTools();
@@ -260,14 +291,178 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-white">All Active AI Tools</h2>
-        <span className="text-sm text-white opacity-60">{tools.length} tools</span>
+        <span className="text-sm text-white opacity-60">{filteredTools.length} of {tools.length} tools</span>
+      </div>
+      
+      {/* Search and Filter Bar */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search tools by name, description, or features..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl px-4 py-3 pl-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm"
+          />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white opacity-60">
+            🔍
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg transition-all duration-200 ${
+              showFilters ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+            title="Toggle Filters"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.121A1 1 0 013 6.414V4z" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Filter Controls */}
+        {showFilters && (
+          <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-4 space-y-4 animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-medium text-white opacity-80 mb-2">
+                  Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                >
+                  <option value="all" className="bg-gray-800 text-white">All Categories</option>
+                  {availableCategories.map((category) => (
+                    <option key={category.id} value={category.id} className="bg-gray-800 text-white">
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-white opacity-80 mb-2">
+                  Status
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                >
+                  <option value="all" className="bg-gray-800 text-white">All Status</option>
+                  <option value="active" className="bg-gray-800 text-white">Active</option>
+                  <option value="pending" className="bg-gray-800 text-white">Pending</option>
+                  <option value="archived" className="bg-gray-800 text-white">Archived</option>
+                </select>
+              </div>
+              
+              {/* Role Filter */}
+              <div>
+                <label className="block text-sm font-medium text-white opacity-80 mb-2">
+                  Suggested Role
+                </label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                >
+                  <option value="all" className="bg-gray-800 text-white">All Roles</option>
+                  {availableRoles.map((role) => (
+                    <option key={role.id} value={role.id} className="bg-gray-800 text-white">
+                      {role.display_name || role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Clear Filters */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                    setSelectedStatus('all');
+                    setSelectedRole('all');
+                  }}
+                  className="w-full px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl hover:bg-red-500/30 transition-colors text-sm font-medium"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+            
+            {/* Active Filters Display */}
+            {(selectedCategory !== 'all' || selectedStatus !== 'all' || selectedRole !== 'all' || searchQuery !== '') && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-white/20">
+                <span className="text-xs text-white opacity-60">Active filters:</span>
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-200 text-xs px-2 py-1 rounded-full">
+                    Search: "{searchQuery}"
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="hover:bg-purple-500/30 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {selectedCategory !== 'all' && (
+                  <span className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-200 text-xs px-2 py-1 rounded-full">
+                    {availableCategories.find(cat => cat.id.toString() === selectedCategory)?.name}
+                    <button
+                      onClick={() => setSelectedCategory('all')}
+                      className="hover:bg-blue-500/30 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {selectedStatus !== 'all' && (
+                  <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-200 text-xs px-2 py-1 rounded-full">
+                    Status: {selectedStatus}
+                    <button
+                      onClick={() => setSelectedStatus('all')}
+                      className="hover:bg-green-500/30 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {selectedRole !== 'all' && (
+                  <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-200 text-xs px-2 py-1 rounded-full">
+                    {availableRoles.find(role => role.id.toString() === selectedRole)?.display_name || 'Role'}
+                    <button
+                      onClick={() => setSelectedRole('all')}
+                      className="hover:bg-yellow-500/30 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {loading ? (
         <p className="text-white opacity-60">Loading...</p>
-      ) : tools.length > 0 ? (
-        <div className={`space-y-4 ${tools.length > 4 ? 'overflow-y-auto pr-2 all-tools-scrollbar' : ''}`}
-             style={{ maxHeight: tools.length > 4 ? '520px' : 'auto' }}>
+      ) : filteredTools.length > 0 ? (
+        <div className={`space-y-4 ${filteredTools.length > 4 ? 'overflow-y-auto pr-2 all-tools-scrollbar' : ''}`}
+             style={{ maxHeight: filteredTools.length > 4 ? '520px' : 'auto' }}>
           <style jsx>{`
             .all-tools-scrollbar::-webkit-scrollbar {
               width: 6px;
@@ -311,23 +506,47 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
               scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
             }
           `}</style>
-          {tools.map((tool) => (
+          {filteredTools.map((tool) => (
             <div 
               key={tool.id}
               className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-200"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-2">
-                    {tool.name}
-                  </h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-xl font-bold text-white">
+                      {tool.name}
+                    </h3>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      tool.status === 'active' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+                      tool.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                      'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                    }`}>
+                      {tool.status}
+                    </span>
+                  </div>
                   <p className="text-white opacity-70 mb-3">
                     {tool.description}
                   </p>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {tool.categories && tool.categories.slice(0, 3).map((category: any, index: number) => (
+                      <span
+                        key={index}
+                        className="bg-blue-500/20 text-blue-200 text-xs px-2 py-1 rounded-full"
+                      >
+                        {category.name}
+                      </span>
+                    ))}
+                    {tool.suggested_for_role && (
+                      <span className="bg-purple-500/20 text-purple-200 text-xs px-2 py-1 rounded-full">
+                        👤 {tool.suggested_for_role.display_name || tool.suggested_for_role.name}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-4 text-sm text-white opacity-50">
-                    <span>URL: {tool.website_url}</span>
+                    <span>🌐 {tool.website_url}</span>
                     <span>•</span>
-                    <span>Added: {formatDate(tool.created_at)}</span>
+                    <span>📅 {formatDate(tool.created_at)}</span>
                   </div>
                 </div>
                 
@@ -349,8 +568,23 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
             </div>
           ))}
         </div>
+      ) : tools.length === 0 ? (
+        <p className="text-white opacity-60">No tools found</p>
       ) : (
-        <p className="text-white opacity-60">No active tools found</p>
+        <div className="text-center py-8">
+          <p className="text-white opacity-60 mb-4">No tools match your current filters</p>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedCategory('all');
+              setSelectedStatus('all');
+              setSelectedRole('all');
+            }}
+            className="px-4 py-2 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 transition-colors"
+          >
+            Clear All Filters
+          </button>
+        </div>
       )}
 
       {/* Edit Modal - Wider with all fields */}
@@ -461,12 +695,13 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
                       value={formData.pricing_type}
                       onChange={(e) => setFormData({...formData, pricing_type: e.target.value})}
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
+                      style={{ colorScheme: 'dark' }}
                     >
-                      <option value="free">Free</option>
-                      <option value="freemium">Freemium</option>
-                      <option value="paid">Paid</option>
-                      <option value="subscription">Subscription</option>
-                      <option value="enterprise">Enterprise</option>
+                      <option value="free" className="bg-gray-900 text-white">Free</option>
+                      <option value="freemium" className="bg-gray-900 text-white">Freemium</option>
+                      <option value="paid" className="bg-gray-900 text-white">Paid</option>
+                      <option value="subscription" className="bg-gray-900 text-white">Subscription</option>
+                      <option value="enterprise" className="bg-gray-900 text-white">Enterprise</option>
                     </select>
                   </div>
 
@@ -476,12 +711,13 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
                       value={formData.integration_type}
                       onChange={(e) => setFormData({...formData, integration_type: e.target.value})}
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
+                      style={{ colorScheme: 'dark' }}
                     >
-                      <option value="redirect">Redirect</option>
-                      <option value="api">API</option>
-                      <option value="iframe">iFrame</option>
-                      <option value="extension">Extension</option>
-                      <option value="plugin">Plugin</option>
+                      <option value="redirect" className="bg-gray-900 text-white">Redirect</option>
+                      <option value="api" className="bg-gray-900 text-white">API</option>
+                      <option value="iframe" className="bg-gray-900 text-white">iFrame</option>
+                      <option value="extension" className="bg-gray-900 text-white">Extension</option>
+                      <option value="plugin" className="bg-gray-900 text-white">Plugin</option>
                     </select>
                   </div>
                 </div>
@@ -503,10 +739,11 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
                     value={formData.status}
                     onChange={(e) => setFormData({...formData, status: e.target.value})}
                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
+                    style={{ colorScheme: 'dark' }}
                   >
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="archived">Archived</option>
+                    <option value="active" className="bg-gray-900 text-white">Active</option>
+                    <option value="pending" className="bg-gray-900 text-white">Pending</option>
+                    <option value="archived" className="bg-gray-900 text-white">Archived</option>
                   </select>
                 </div>
 
@@ -516,10 +753,11 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
                     value={formData.suggested_role_id}
                     onChange={(e) => setFormData({...formData, suggested_role_id: e.target.value})}
                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
+                    style={{ colorScheme: 'dark' }}
                   >
-                    <option value="">No specific role</option>
+                    <option value="" className="bg-gray-900 text-white">No specific role</option>
                     {availableRoles.map(role => (
-                      <option key={role.id} value={role.id}>{role.display_name || role.name}</option>
+                      <option key={role.id} value={role.id} className="bg-gray-900 text-white">{role.display_name || role.name}</option>
                     ))}
                   </select>
                 </div>

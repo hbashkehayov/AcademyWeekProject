@@ -192,49 +192,57 @@ class RecommendationEngine
         $cacheKey = $userId ? "tool_score:{$tool->id}:{$roleName}:{$userId}" : "tool_score:{$tool->id}:{$roleName}";
         
         return Cache::remember($cacheKey, 1800, function () use ($tool, $roleName, $userId) { // Cache for 30 minutes
-            $baseScore = 0;
+            $baseScore = 25; // Moderate base score for realistic differentiation
             
             // 1. Keyword matching in name and description (30 points max)
             $keywordScore = $this->calculateKeywordScore($tool, $roleName);
-            $baseScore += $keywordScore * 30;
+            $baseScore += $keywordScore * 30; // Balanced scoring
             
             // 2. Category matching (30 points max)
             $categoryScore = $this->calculateCategoryScore($tool, $roleName);
-            $baseScore += $categoryScore * 30;
+            $baseScore += $categoryScore * 30; // Balanced scoring
             
-            // 3. Explicit role suggestion (15 points max)
+            // 3. Explicit role suggestion (18 points max)
             $suggestedRole = Role::find($tool->suggested_for_role);
             if ($suggestedRole && $suggestedRole->name === $roleName) {
-                $baseScore += 15;
+                $baseScore += 18; // Strong but not excessive boost
             } elseif ($suggestedRole) {
                 // Give partial credit for tools assigned to other roles that might be cross-functional
                 $crossRoleScore = $this->getCrossRoleCompatibility($roleName, $suggestedRole->name);
-                $baseScore += $crossRoleScore * 8; // Up to 8 points for cross-role compatibility
+                $baseScore += $crossRoleScore * 12; // Moderate cross-role boost
             }
             
-            // 4. Tool popularity/quality bonus (10 points max)
+            // 4. Tool popularity/quality bonus (12 points max)
             $qualityScore = $this->calculateQualityScore($tool);
-            $baseScore += $qualityScore * 10;
+            $baseScore += $qualityScore * 12; // Moderate quality boost
             
             // 5. Personalization boost (15 points max)
             if ($userId) {
                 $personalizationScore = $this->getPersonalizationBoost($tool, $userId);
-                $baseScore += $personalizationScore * 15;
+                $baseScore += $personalizationScore * 15; // Reasonable personalization boost
                 
-                // Extra boost for recently added pending tools by the user (10 points)
+                // Extra boost for recently added pending tools by the user (12 points)
                 if ($tool->status === 'pending' && $tool->submitted_by == $userId) {
                     $daysSinceAdded = now()->diffInDays($tool->created_at);
                     if ($daysSinceAdded <= 7) {
-                        $baseScore += 10; // High boost to show user's recent additions
+                        $baseScore += 12; // Moderate boost to show user's recent additions
                     }
                 }
+            }
+            
+            // Apply multiplier bonuses for good matches
+            if ($keywordScore > 0.4 && $categoryScore > 0.5) {
+                $baseScore *= 1.05; // 5% bonus for decent matches
+            }
+            if ($keywordScore > 0.6 || $categoryScore > 0.7) {
+                $baseScore += 6; // Extra 6 points for strong matches
             }
             
             // Ensure score is between 0 and 100
             $finalScore = max(0, min(100, round($baseScore, 2)));
             
             // Apply minimum score threshold to filter out very poor matches
-            return $finalScore < 10 ? 0 : $finalScore;
+            return $finalScore < 40 ? 0 : $finalScore; // Higher threshold for better filtering
         });
     }
 
@@ -387,13 +395,15 @@ class RecommendationEngine
             }
         }
         
-        // Standard scoring reasons
-        if ($score >= 80) {
+        // Standard scoring reasons - updated thresholds to reflect more positive scoring
+        if ($score >= 85) {
             $reasons[] = "Perfect match for $roleName developers";
-        } elseif ($score >= 60) {
+        } elseif ($score >= 70) {
             $reasons[] = "Highly recommended for $roleName role";
-        } elseif ($score >= 40) {
-            $reasons[] = "Good fit for $roleName tasks";
+        } elseif ($score >= 50) {
+            $reasons[] = "Great fit for $roleName tasks";
+        } elseif ($score >= 30) {
+            $reasons[] = "Good tool for $roleName workflow";
         }
         
         // Add category-based reasons
