@@ -26,7 +26,17 @@ export default function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Log
     setShowErrorPopup(false); // Hide any existing error popup
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+      let baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+      console.log('LoginForm: NEXT_PUBLIC_API_URL =', process.env.NEXT_PUBLIC_API_URL);
+      console.log('LoginForm: Constructed baseUrl =', baseUrl);
+      
+      // Temporary fix: ensure we use port 8000 until server restart
+      if (baseUrl === 'http://localhost') {
+        baseUrl = 'http://localhost:8000';
+        console.log('LoginForm: Fixed baseUrl to use port 8000:', baseUrl);
+      }
+      
+      console.log('LoginForm: Final CSRF URL =', `${baseUrl}/sanctum/csrf-cookie`);
       
       // First, get CSRF token
       const csrfResponse = await fetch(`${baseUrl}/sanctum/csrf-cookie`, {

@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ToolCard from "@/components/ToolCard";
 import { apiService } from "@/lib/api";
+import { useTheme } from "@/contexts/ThemeContext";
 import type { AiTool, Category, Role } from "@/types";
 
 export default function ToolsPage() {
@@ -13,6 +14,8 @@ export default function ToolsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { isDarkMode } = useTheme();
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,14 +97,24 @@ export default function ToolsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-all duration-500 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900' 
+        : 'bg-gradient-to-br from-blue-50 via-white to-blue-100'
+    }`}>
       <Header />
       
       <main className="flex-1">
-        <div className="bg-gray-50 border-b">
+        <div className={`border-b transition-all duration-500 ${
+          isDarkMode ? 'bg-blue-900/30 border-blue-700/30' : 'bg-gray-50 border-gray-200'
+        }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Tools Directory</h1>
-            <p className="text-gray-600">Discover AI tools tailored to your development role</p>
+            <h1 className={`text-3xl font-bold mb-2 transition-all duration-500 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>AI Tools Directory</h1>
+            <p className={`transition-all duration-500 ${
+              isDarkMode ? 'text-blue-100' : 'text-gray-600'
+            }`}>Discover AI tools tailored to your development role</p>
           </div>
         </div>
 

@@ -97,6 +97,37 @@ class User extends Authenticatable
         return $this->toolUsage()->where('is_favorite', true);
     }
 
+    public function aiInteractions()
+    {
+        return $this->hasMany(UserAiInteraction::class);
+    }
+
+    public function roleChangeRequests()
+    {
+        return $this->hasMany(RoleChangeRequest::class);
+    }
+
+    public function processedRoleChangeRequests()
+    {
+        return $this->hasMany(RoleChangeRequest::class, 'processed_by');
+    }
+
+    public function recentlyAddedTools($days = 7)
+    {
+        return $this->aiInteractions()
+                   ->recentlyAdded($days)
+                   ->with('tool')
+                   ->orderByDesc('created_at');
+    }
+
+    public function aiSuggestedTools($days = 30)
+    {
+        return $this->aiInteractions()
+                   ->suggestedByAI($days)
+                   ->with('tool')
+                   ->orderByDesc('created_at');
+    }
+
     public function hasTwoFactorEnabled()
     {
         return $this->two_factor_enabled && !empty($this->two_factor_secret);

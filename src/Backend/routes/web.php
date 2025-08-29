@@ -17,6 +17,14 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
+// Sanctum CSRF Cookie route (this initializes the CSRF token in cookies)
+Route::middleware('web')->get('/sanctum/csrf-cookie', function () {
+    return response()->json([
+        'message' => 'CSRF cookie set',
+        'csrf_token' => csrf_token()
+    ]);
+});
+
 // Temporary dashboard route to prevent 404 errors
 Route::get('/dashboard', function () {
     return response()->json(['message' => 'Dashboard route accessed', 'success' => true]);

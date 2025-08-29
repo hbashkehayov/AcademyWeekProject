@@ -155,7 +155,7 @@ export default function PendingToolDetails({ tool, onBack, onApprove, onReject }
                   href={tool.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                  className="px-2 py-1 text-blue-400 hover:text-white bg-blue-500/20 hover:bg-blue-500/40 border border-blue-400/30 hover:border-blue-400/60 rounded-md transition-all duration-300"
                 >
                   {tool.website_url}
                 </a>
@@ -168,7 +168,7 @@ export default function PendingToolDetails({ tool, onBack, onApprove, onReject }
                   href={tool.api_endpoint}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-green-400 hover:text-green-300 transition-colors"
+                  className="px-2 py-1 text-green-400 hover:text-white bg-green-500/20 hover:bg-green-500/40 border border-green-400/30 hover:border-green-400/60 rounded-md transition-all duration-300"
                 >
                   {tool.api_endpoint}
                 </a>
@@ -181,7 +181,7 @@ export default function PendingToolDetails({ tool, onBack, onApprove, onReject }
                   href={tool.logo_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                  className="px-2 py-1 text-purple-400 hover:text-white bg-purple-500/20 hover:bg-purple-500/40 border border-purple-400/30 hover:border-purple-400/60 rounded-md transition-all duration-300"
                 >
                   {tool.logo_url}
                 </a>

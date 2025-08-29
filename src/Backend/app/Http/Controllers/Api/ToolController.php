@@ -51,8 +51,8 @@ class ToolController extends Controller
         if ($request->has('status')) {
             $query->where('status', $request->status);
         } else {
-            // Show both active and pending tools for now
-            $query->whereIn('status', ['active', 'pending']);
+            // Only show active tools in the public library
+            $query->where('status', 'active');
         }
 
         $tools = $query->paginate($request->get('per_page', 15));
@@ -81,6 +81,22 @@ class ToolController extends Controller
             'roles.*.id' => 'exists:roles,id',
             'roles.*.relevance_score' => 'numeric|min:0|max:100',
         ]);
+
+        // Check for duplicate tools based on name similarity
+        $duplicateTool = $this->findDuplicateTool($validated['name']);
+        if ($duplicateTool) {
+            return response()->json([
+                'error' => 'A similar tool already exists',
+                'message' => "A tool named '{$duplicateTool->name}' already exists in our catalogue. Please check if this is the same tool.",
+                'existing_tool' => [
+                    'id' => $duplicateTool->id,
+                    'name' => $duplicateTool->name,
+                    'description' => $duplicateTool->description,
+                    'website_url' => $duplicateTool->website_url,
+                    'status' => $duplicateTool->status
+                ]
+            ], 409); // 409 Conflict
+        }
 
         $validated['status'] = 'pending';
         $validated['submitted_by'] = auth()->id() ?? null; // Allow null for unauthenticated submissions
@@ -195,6 +211,89 @@ class ToolController extends Controller
         $tool->delete();
 
         return response()->json(['message' => 'Tool deleted successfully']);
+    }
+
+    /**
+     * Find duplicate tools based on name similarity
+     * Uses multiple strategies to detect potential duplicates including typos
+     */
+    private function findDuplicateTool(string $name): ?AiTool
+    {
+        $normalizedName = $this->normalizeToolName($name);
+        
+        // Get all existing tools
+        $existingTools = AiTool::all();
+        
+        foreach ($existingTools as $tool) {
+            $existingNormalized = $this->normalizeToolName($tool->name);
+            
+            // Strategy 1: Exact match after normalization
+            if ($normalizedName === $existingNormalized) {
+                return $tool;
+            }
+            
+            // Strategy 2: Levenshtein distance for typo detection
+            // If the distance is less than 3 characters, consider it a potential duplicate
+            $distance = levenshtein($normalizedName, $existingNormalized);
+            $maxLength = max(strlen($normalizedName), strlen($existingNormalized));
+            
+            // Calculate similarity percentage
+            $similarity = 1 - ($distance / $maxLength);
+            
+            // If similarity is above 85%, consider it a duplicate
+            if ($similarity > 0.85) {
+                return $tool;
+            }
+            
+            // Strategy 3: Check if one name contains the other (for variations like "ChatGPT" vs "ChatGPT Plus")
+            if (strlen($normalizedName) > 3 && strlen($existingNormalized) > 3) {
+                if (str_contains($normalizedName, $existingNormalized) || str_contains($existingNormalized, $normalizedName)) {
+                    // Additional check: ensure it's not a completely different tool
+                    // e.g., "Git" shouldn't match "GitHub"
+                    $lengthDifference = abs(strlen($normalizedName) - strlen($existingNormalized));
+                    if ($lengthDifference < 5) {
+                        return $tool;
+                    }
+                }
+            }
+            
+            // Strategy 4: Soundex comparison for phonetic similarity
+            if (soundex($normalizedName) === soundex($existingNormalized)) {
+                // Additional verification with string similarity
+                similar_text($normalizedName, $existingNormalized, $percent);
+                if ($percent > 70) {
+                    return $tool;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Normalize tool name for comparison
+     * Removes special characters, converts to lowercase, removes common words
+     */
+    private function normalizeToolName(string $name): string
+    {
+        // Convert to lowercase
+        $normalized = strtolower($name);
+        
+        // Remove special characters but keep spaces
+        $normalized = preg_replace('/[^a-z0-9\s]+/', '', $normalized);
+        
+        // Remove common words that might be added/removed
+        $commonWords = ['ai', 'tool', 'app', 'platform', 'assistant', 'the', 'a', 'an'];
+        $words = explode(' ', $normalized);
+        $filtered = array_filter($words, function($word) use ($commonWords) {
+            return !in_array($word, $commonWords) && strlen($word) > 1;
+        });
+        
+        // Rejoin and remove extra spaces
+        $normalized = implode(' ', $filtered);
+        $normalized = trim(preg_replace('/\s+/', ' ', $normalized));
+        
+        return $normalized;
     }
 
     /**

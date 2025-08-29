@@ -13,17 +13,17 @@ export default function Footer() {
             <p className="text-gray-400 text-sm mb-3">
               A library of AI tools, selected by experienced SoftArt developers.
             </p>
-            <div className="flex space-x-4 text-sm">
-              <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+            <div className="flex flex-wrap gap-2 text-sm">
+              <Link href="/about" className="px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300">
                 About
               </Link>
-              <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/contact" className="px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300">
                 Contact
               </Link>
-              <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/privacy" className="px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300">
                 Privacy
               </Link>
-              <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/terms" className="px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300">
                 Terms
               </Link>
             </div>
@@ -34,17 +34,17 @@ export default function Footer() {
             <h4 className="text-sm font-semibold text-white mb-3">Quick Links</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/tools" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/tools" className="inline-block px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 w-full">
                   Browse Tools
                 </Link>
               </li>
               <li>
-                <Link href="/categories" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/categories" className="inline-block px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 w-full">
                   Categories
                 </Link>
               </li>
               <li>
-                <Link href="/recommendations" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/recommendations" className="inline-block px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 w-full">
                   Recommendations
                 </Link>
               </li>
@@ -56,17 +56,17 @@ export default function Footer() {
             <h4 className="text-sm font-semibold text-white mb-3">Support</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/help" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/help" className="inline-block px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 w-full">
                   Help Center
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/faq" className="inline-block px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 w-full">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="/api-docs" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/api-docs" className="inline-block px-3 py-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 w-full">
                   API Docs
                 </Link>
               </li>
@@ -85,7 +85,7 @@ export default function Footer() {
                 href="https://softart.bg/" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-white hover:text-green-400 transition-colors font-semibold"
+                className="px-2 py-1 text-white hover:text-green-400 bg-white/10 hover:bg-green-400/20 backdrop-blur-sm border border-white/20 hover:border-green-400/30 rounded-md transition-all duration-300 font-semibold"
               >
                 SoftArt
               </a>

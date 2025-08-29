@@ -4,7 +4,9 @@
 /src/public/hot
 /src/public/storage
 /src/storage/*.key
-/src/.env
+# Include .env files for easy setup
+!/src/.env
+!/src/.env.example
 /src/.env.backup
 /src/.phpunit.result.cache
 /src/Homestead.json
@@ -15,8 +17,8 @@
 /src/.vscode
 /src/*.log
 
-# Docker
-.env
+# Docker - Include .env files for easy setup
+!.env
 !.env.example
 docker-compose.override.yml
 

@@ -51,26 +51,26 @@ export default function GreetingCard({ user }: GreetingCardProps) {
   const roleDescription = roleDescriptions[roleName] || 'Professional team member';
 
   return (
-    <div className="glass-morphism p-6 md:p-8 rounded-3xl">
-      <div className="flex items-center justify-between mb-4">
+    <div className="glass-morphism p-8 md:p-10 lg:p-12 rounded-3xl">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex-1">
-          <h2 className="text-2xl md:text-3xl font-bold text-white opacity-80 mb-2">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white opacity-80 mb-4">
             {greeting}, {user.display_name}! 👋
           </h2>
-          <div className="space-y-1">
-            <p className="text-lg text-white opacity-70">
+          <div className="space-y-2">
+            <p className="text-xl md:text-2xl text-white opacity-70">
               You're signed in as a <span className="font-semibold text-white opacity-80">{roleDisplay}</span>
             </p>
-            <p className="text-sm text-white opacity-60">
+            <p className="text-base md:text-lg text-white opacity-60">
               {roleDescription}
             </p>
           </div>
         </div>
         
         {/* Role Badge */}
-        <div className="ml-4 flex-shrink-0">
-          <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2">
-            <span className="text-sm font-semibold text-white opacity-80">
+        <div className="ml-6 flex-shrink-0">
+          <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-6 py-3">
+            <span className="text-base md:text-lg font-semibold text-white opacity-80">
               {roleDisplay}
             </span>
           </div>
@@ -78,10 +78,10 @@ export default function GreetingCard({ user }: GreetingCardProps) {
       </div>
 
       {/* Welcome Message */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-        <p className="text-white opacity-70 text-sm leading-relaxed">
+      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/20">
+        <p className="text-white opacity-70 text-base md:text-lg leading-relaxed">
           Welcome to your personalized sanctum dashboard! Here you'll find AI tools curated specifically for your role, 
-          manage your notes, and explore new tools to enhance your workflow.
+          manage your notes, and explore new tools to enhance your workflow. Everything you need is at your fingertips.
         </p>
       </div>
     </div>

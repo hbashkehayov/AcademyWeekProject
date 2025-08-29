@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { apiService } from '@/lib/api';
 import type { AiTool } from '@/types';
 
-interface ToolsListProps {
+interface FavouritesProps {
   onBack: () => void;
-  onToolClick: (tool: AiTool) => void;
+  onToolClick?: (tool: AiTool) => void;
 }
 
 interface HeartAnimation {
@@ -15,128 +15,69 @@ interface HeartAnimation {
   y: number;
 }
 
-export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
-  const [tools, setTools] = useState<AiTool[]>([]);
+export default function Favourites({ onBack, onToolClick }: FavouritesProps) {
+  const [favouriteTools, setFavouriteTools] = useState<AiTool[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [favoriteTools, setFavoriteTools] = useState<Set<string>>(new Set());
+  const [favoriteToolIds, setFavoriteToolIds] = useState<Set<string>>(new Set());
   const [heartAnimations, setHeartAnimations] = useState<HeartAnimation[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Load favorites from localStorage on mount
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('user_favourites');
-    if (savedFavorites) {
+    const loadFavorites = async () => {
       try {
-        const favoriteIds = JSON.parse(savedFavorites);
-        setFavoriteTools(new Set(favoriteIds.map((id: string | number) => String(id))));
+        setLoading(true);
+        
+        // Load favorite IDs from localStorage
+        const savedFavorites = localStorage.getItem('user_favourites');
+        if (savedFavorites) {
+          const favoriteIds = JSON.parse(savedFavorites);
+          setFavoriteToolIds(new Set(favoriteIds.map((id: string | number) => String(id))));
+          
+          // Get all tools and filter by favorite IDs
+          const response = await apiService.getTools();
+          const allTools = response.data || [];
+          
+          const favorites = allTools.filter(tool => 
+            favoriteIds.some((id: string | number) => String(id) === String(tool.id))
+          );
+          
+          setFavouriteTools(favorites);
+        } else {
+          setFavouriteTools([]);
+        }
       } catch (error) {
-        console.error('Error loading favorites:', error);
+        console.error('Error loading favorite tools:', error);
+        setFavouriteTools([]);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    loadFavorites();
 
     // Listen for changes to favorites from other components
     const handleFavoritesChanged = () => {
-      const savedFavorites = localStorage.getItem('user_favourites');
-      if (savedFavorites) {
-        try {
-          const favoriteIds = JSON.parse(savedFavorites);
-          setFavoriteTools(new Set(favoriteIds.map((id: string | number) => String(id))));
-        } catch (error) {
-          console.error('Error updating favorites:', error);
-        }
-      }
+      loadFavorites();
     };
 
     window.addEventListener('favouritesChanged', handleFavoritesChanged);
     return () => window.removeEventListener('favouritesChanged', handleFavoritesChanged);
   }, []);
 
-  useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        const response = await apiService.getTools();
-        // Fix: response is already the data, and tools are in response.data array
-        setTools(response.data || []);
-      } catch (error) {
-        console.error('Error fetching tools:', error);
-        // Fallback with mock data if API fails
-        setTools([
-          {
-            id: '1',
-            name: 'GitHub Copilot',
-            slug: 'github-copilot',
-            description: 'AI-powered code completion and suggestions directly in your IDE',
-            website_url: 'https://github.com/features/copilot',
-            integration_type: 'api' as const,
-            status: 'active' as const,
-            pricing_model: { type: 'paid' as const, price: 10, currency: 'USD', billing_cycle: 'monthly' as const },
-            features: ['Code completion', 'Function suggestions', 'Comment-based code generation'],
-            average_rating: 4.5,
-            created_at: '2024-01-01T00:00:00.000Z',
-            updated_at: '2024-01-01T00:00:00.000Z'
-          },
-          {
-            id: '2',
-            name: 'ChatGPT',
-            slug: 'chatgpt',
-            description: 'Advanced AI assistant for coding, documentation, and problem-solving',
-            website_url: 'https://chat.openai.com',
-            integration_type: 'redirect' as const,
-            status: 'active' as const,
-            pricing_model: { type: 'freemium' as const, price: 20, currency: 'USD', billing_cycle: 'monthly' as const, free_tier: true },
-            features: ['Code generation', 'Documentation', 'Debugging help', 'Architecture advice'],
-            average_rating: 4.8,
-            created_at: '2024-01-01T00:00:00.000Z',
-            updated_at: '2024-01-01T00:00:00.000Z'
-          },
-          {
-            id: '3',
-            name: 'Figma AI',
-            slug: 'figma-ai',
-            description: 'AI-powered design tool for creating UI/UX designs and prototypes',
-            website_url: 'https://figma.com',
-            integration_type: 'redirect' as const,
-            status: 'active' as const,
-            pricing_model: { type: 'freemium' as const, price: 15, currency: 'USD', billing_cycle: 'monthly' as const, free_tier: true },
-            features: ['Design generation', 'Auto-layout', 'Component suggestions'],
-            average_rating: 4.3,
-            created_at: '2024-01-01T00:00:00.000Z',
-            updated_at: '2024-01-01T00:00:00.000Z'
-          },
-          {
-            id: '4',
-            name: 'Cypress',
-            slug: 'cypress',
-            description: 'End-to-end testing framework with AI-powered test generation',
-            website_url: 'https://cypress.io',
-            integration_type: 'api' as const,
-            status: 'active' as const,
-            pricing_model: { type: 'freemium' as const, price: 75, currency: 'USD', billing_cycle: 'monthly' as const, free_tier: true },
-            features: ['E2E testing', 'Test recording', 'Visual testing'],
-            average_rating: 4.2,
-            created_at: '2024-01-01T00:00:00.000Z',
-            updated_at: '2024-01-01T00:00:00.000Z'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTools();
-  }, []);
-
   const toggleFavorite = (tool: AiTool, event: React.MouseEvent) => {
     event.stopPropagation();
     
     const toolId = String(tool.id);
-    const isFavorite = favoriteTools.has(toolId);
+    const isFavorite = favoriteToolIds.has(toolId);
     
     // Update favorites
-    const newFavorites = new Set(favoriteTools);
+    const newFavorites = new Set(favoriteToolIds);
     if (isFavorite) {
       newFavorites.delete(toolId);
+      // Remove from displayed list
+      setFavouriteTools(prev => prev.filter(t => String(t.id) !== toolId));
     } else {
       newFavorites.add(toolId);
       
@@ -158,7 +99,7 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
       }
     }
     
-    setFavoriteTools(newFavorites);
+    setFavoriteToolIds(newFavorites);
     
     // Save to localStorage
     const favoriteIds = Array.from(newFavorites);
@@ -166,12 +107,9 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
     
     // Dispatch event to notify other components
     window.dispatchEvent(new CustomEvent('favouritesChanged'));
-    
-    // Optional: Call API to persist favorites on backend
-    // apiService.toggleFavoriteTool(toolId).catch(console.error);
   };
 
-  const filteredTools = tools.filter(tool =>
+  const filteredTools = favouriteTools.filter(tool =>
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tool.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -210,10 +148,10 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-2xl font-bold text-white opacity-80 mb-2">
-            AI Tools Library
+            My Favourites ❤️
           </h3>
           <p className="text-sm text-white opacity-60">
-            Discover and explore curated AI tools for your workflow
+            Your saved AI tools collection
           </p>
         </div>
         <button
@@ -229,7 +167,7 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
         <div className="relative">
           <input
             type="text"
-            placeholder="Search tools..."
+            placeholder="Search favorites..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl px-4 py-3 pl-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm"
@@ -243,7 +181,7 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
       {/* Tools Count */}
       <div className="mb-4">
         <p className="text-xs text-white opacity-60">
-          {filteredTools.length} tool{filteredTools.length !== 1 ? 's' : ''} found
+          {filteredTools.length} favorite{filteredTools.length !== 1 ? 's' : ''} found
         </p>
       </div>
 
@@ -257,19 +195,43 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
       >
         {loading ? (
           <div className="flex justify-center items-center h-32">
-            <div className="text-white opacity-60">Loading tools...</div>
+            <div className="text-white opacity-60">Loading favorites...</div>
           </div>
         ) : filteredTools.length === 0 ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="text-white opacity-60">
-              {searchQuery ? 'No tools found matching your search.' : 'No tools available.'}
-            </div>
+          <div className="flex flex-col justify-center items-center h-64 text-center">
+            {favouriteTools.length === 0 ? (
+              <>
+                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-3xl">💔</span>
+                </div>
+                <h3 className="text-lg font-bold text-white opacity-80 mb-2">No favourites yet</h3>
+                <p className="text-white opacity-60 text-sm max-w-xs">
+                  Start exploring AI tools and click the ❤️ button to save them here.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-3xl">🔍</span>
+                </div>
+                <h3 className="text-lg font-bold text-white opacity-80 mb-2">No matches found</h3>
+                <p className="text-white opacity-60 text-sm">
+                  Try adjusting your search terms.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           filteredTools.map((tool) => (
             <div
               key={tool.id}
-              onClick={() => onToolClick(tool)}
+              onClick={(e) => {
+                if (onToolClick && typeof onToolClick === 'function') {
+                  onToolClick(tool);
+                } else {
+                  console.log('onToolClick not available');
+                }
+              }}
               className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group cursor-pointer"
             >
               {/* Tool Header */}
@@ -319,21 +281,15 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
                   {getPricingDisplay(tool.pricing_model)}
                 </div>
                 <div className="flex gap-2 items-center">
-                  {/* Favorite Button */}
+                  {/* Heart Favorite Button - Always red/filled since these are favorites */}
                   <button
                     onClick={(e) => toggleFavorite(tool, e)}
-                    className={`relative p-2 rounded-full transition-all duration-300 hover:scale-110 ${
-                      favoriteTools.has(String(tool.id))
-                        ? 'text-red-500 bg-red-500/20 hover:bg-red-500/30'
-                        : 'text-white/60 hover:text-red-400 hover:bg-red-500/20'
-                    }`}
-                    title={favoriteTools.has(String(tool.id)) ? "Remove from favorites" : "Add to favorites"}
+                    className="relative p-2 rounded-full transition-all duration-300 hover:scale-110 text-red-500 bg-red-500/20 hover:bg-red-500/30"
+                    title="Remove from favorites"
                   >
                     <svg 
-                      className={`w-5 h-5 transition-all duration-300 ${
-                        favoriteTools.has(String(tool.id)) ? 'heart-animation' : ''
-                      }`}
-                      fill={favoriteTools.has(String(tool.id)) ? "currentColor" : "none"}
+                      className="w-5 h-5 transition-all duration-300 heart-animation"
+                      fill="currentColor"
                       viewBox="0 0 24 24" 
                       stroke="currentColor"
                       strokeWidth={2}
@@ -368,7 +324,9 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onToolClick(tool);
+                      if (onToolClick && typeof onToolClick === 'function') {
+                        onToolClick(tool);
+                      }
                     }}
                     className="bg-purple-500/20 hover:bg-purple-500/30 text-xs px-3 py-1 rounded-full text-white opacity-70 hover:opacity-90 transition-all duration-200"
                   >

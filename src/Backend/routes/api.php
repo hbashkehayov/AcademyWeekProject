@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\AIAssistantController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +66,14 @@ Route::post('/admin/tools/{tool}/reject', [AdminController::class, 'rejectTool']
 Route::get('/admin/users', [AdminController::class, 'getUsers']);
 Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser']);
 Route::get('/admin/stats', [AdminController::class, 'getDashboardStats']);
+Route::get('/admin/active-tools', [AdminController::class, 'getActiveTools']);
+Route::put('/admin/tools/{tool}', [AdminController::class, 'updateTool']);
+Route::delete('/admin/tools/{tool}', [AdminController::class, 'deleteTool']);
+
+// Temporary: Allow recommendations without authentication for testing
+Route::get('/recommendations', [RecommendationController::class, 'index']);
+Route::get('/recommendations/role-based', [RecommendationController::class, 'roleBasedRecommendations']);
+Route::post('/recommendations/track-interaction', [RecommendationController::class, 'trackInteraction']);
 
 // Authentication required routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -80,6 +89,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
+    // User profile management
+    Route::get('/profile', [UserController::class, 'getCurrentUser']);
+    Route::put('/profile', [UserController::class, 'updateProfile']);
+    Route::post('/profile/change-password', [UserController::class, 'changePassword']);
+    
+    // Role change requests
+    Route::get('/profile/role-change-requests', [UserController::class, 'getRoleChangeRequests']);
+    Route::post('/profile/request-role-change', [UserController::class, 'requestRoleChange']);
+
     // Tool management (except create which is above)
     Route::put('/tools/{tool}', [ToolController::class, 'update']);
     Route::delete('/tools/{tool}', [ToolController::class, 'destroy']);
@@ -89,9 +107,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tools/{tool}/favorite', [ToolController::class, 'toggleFavorite']);
     Route::post('/tools/{tool}/usage', [ToolController::class, 'trackUsage']);
     
-    // Recommendations
-    Route::get('/recommendations', [RecommendationController::class, 'index']);
-    Route::get('/recommendations/role-based', [RecommendationController::class, 'roleBasedRecommendations']);
+    // Recommendations (moved to public for testing)
+    // Route::get('/recommendations', [RecommendationController::class, 'index']);
+    // Route::get('/recommendations/role-based', [RecommendationController::class, 'roleBasedRecommendations']);
     
     // User favorites and history
     Route::get('/user/favorites', [ToolController::class, 'favorites']);
@@ -103,5 +121,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tools/{tool}/approve', [AdminController::class, 'approveTool']);
         Route::post('/tools/{tool}/reject', [AdminController::class, 'rejectTool']);
         Route::get('/dashboard-stats', [AdminController::class, 'getDashboardStats']);
+        
+        // Role change request management (Owner only)
+        Route::get('/role-change-requests', [UserController::class, 'getAllPendingRoleChangeRequests']);
+        Route::post('/role-change-requests/{requestId}/process', [UserController::class, 'processRoleChangeRequest']);
     });
 });

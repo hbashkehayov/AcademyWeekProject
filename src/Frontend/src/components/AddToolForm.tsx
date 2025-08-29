@@ -36,6 +36,7 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, in
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [isAIFilled, setIsAIFilled] = useState(false);
 
   const integrationTypes = [
     { value: 'redirect', label: 'Web Application', icon: '🌐' },
@@ -92,6 +93,9 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, in
   useEffect(() => {
     if (initialData && availableCategories.length > 0) {
       console.log('AddToolForm: Populating form with AI data:', initialData);
+      
+      // Set flag that this form was filled by AI
+      setIsAIFilled(true);
       
       // Map AI tool proposal data to form structure
       setFormData(prev => {
@@ -644,10 +648,20 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, in
         </div>
 
         {/* Categories */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+        <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 relative ${isAIFilled ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10' : ''}`}>
           <h4 className="text-lg font-bold text-white opacity-80 mb-4">Categories</h4>
-          <p className="text-sm text-white opacity-60 mb-4">Select relevant categories for this tool</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {isAIFilled && (
+            <div className="absolute top-6 right-6 bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-3 py-1 flex items-center space-x-1">
+              <span className="text-xs">🤖</span>
+              <span className="text-xs text-purple-300 font-medium">AI Auto-filled</span>
+            </div>
+          )}
+          <p className="text-sm text-white opacity-60 mb-4">
+            {isAIFilled 
+              ? "Categories have been automatically selected by AI based on tool analysis. You can adjust if needed." 
+              : "Select relevant categories for this tool"}
+          </p>
+          <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 ${isAIFilled ? 'opacity-90' : ''}`}>
             {availableCategories.map((category) => (
               <button
                 key={category.id}
@@ -655,30 +669,47 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, in
                 onClick={() => toggleCategory(category.id)}
                 className={`p-3 rounded-xl border-2 text-left transition-all duration-200 ${
                   formData.categories.includes(category.id)
-                    ? 'border-blue-500/60 bg-blue-500/20'
+                    ? isAIFilled 
+                      ? 'border-purple-400/60 bg-gradient-to-br from-purple-500/20 to-blue-500/20 shadow-lg shadow-purple-500/10'
+                      : 'border-blue-500/60 bg-blue-500/20'
                     : 'border-white/20 bg-white/5 hover:bg-white/10'
                 }`}
               >
                 <div className="text-lg mb-1">{category.icon || '📁'}</div>
                 <div className="text-white opacity-80 font-medium text-sm">{category.name}</div>
+                {isAIFilled && formData.categories.includes(category.id) && (
+                  <div className="text-xs text-purple-300 mt-1">AI Selected</div>
+                )}
               </button>
             ))}
           </div>
         </div>
 
         {/* Roles & Relevance */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+        <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 relative ${isAIFilled ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10' : ''}`}>
           <h4 className="text-lg font-bold text-white opacity-80 mb-4">Target Roles</h4>
-          <p className="text-sm text-white opacity-60 mb-4">Select roles and set relevance scores (1-100)</p>
+          {isAIFilled && (
+            <div className="absolute top-6 right-6 bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-3 py-1 flex items-center space-x-1">
+              <span className="text-xs">🤖</span>
+              <span className="text-xs text-purple-300 font-medium">AI Auto-filled</span>
+            </div>
+          )}
+          <p className="text-sm text-white opacity-60 mb-4">
+            {isAIFilled 
+              ? "AI has automatically calculated role relevance scores based on tool capabilities. Adjust as needed."
+              : "Select roles and set relevance scores (1-100)"}
+          </p>
           
           <div className="mb-4">
             <label className="block text-sm font-medium text-white opacity-70 mb-2">
-              Primary Suggested Role
+              Primary Suggested Role {isAIFilled && <span className="text-purple-300">(AI Suggested)</span>}
             </label>
             <select
               value={formData.suggested_for_role}
               onChange={(e) => setFormData(prev => ({ ...prev, suggested_for_role: e.target.value }))}
-              className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out appearance-none cursor-pointer transform hover:scale-105 focus:scale-105"
+              className={`w-full bg-white/5 backdrop-blur-lg border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/10 focus:shadow-lg transition-all duration-500 ease-out appearance-none cursor-pointer transform hover:scale-105 focus:scale-105 ${
+                isAIFilled ? 'border-purple-400/30' : 'border-white/10'
+              }`}
               style={{
                 backdropFilter: 'blur(20px) saturate(180%)',
                 background: 'rgba(255, 255, 255, 0.03)',
@@ -704,15 +735,28 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, in
               const roleData = formData.roles.find(r => r.id === role.id);
               
               return (
-                <div key={role.id} className="flex items-center gap-4">
+                <div key={role.id} className={`flex items-center gap-4 p-2 rounded-lg transition-all ${
+                  isSelected && isAIFilled 
+                    ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-400/20' 
+                    : ''
+                }`}>
                   <label className="flex items-center gap-2 min-w-0 flex-1">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleRole(role.id)}
-                      className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500"
+                      className={`rounded ${
+                        isAIFilled && isSelected 
+                          ? 'border-purple-400/30 bg-purple-500/20 text-purple-400' 
+                          : 'border-white/20 bg-white/10 text-blue-500'
+                      } focus:ring-blue-500`}
                     />
-                    <span className="text-white opacity-80 truncate">{role.display_name}</span>
+                    <span className="text-white opacity-80 truncate">
+                      {role.display_name}
+                      {isAIFilled && isSelected && (
+                        <span className="text-xs text-purple-300 ml-2">(AI)</span>
+                      )}
+                    </span>
                   </label>
                   
                   {isSelected && (
@@ -724,7 +768,11 @@ export default function AddToolForm({ onBack, onSubmit, isSubmitting = false, in
                         max="100"
                         value={roleData?.relevance_score || 70}
                         onChange={(e) => updateRoleRelevance(role.id, parseInt(e.target.value) || 70)}
-                        className="w-16 bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-white/30"
+                        className={`w-16 border rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 ${
+                          isAIFilled 
+                            ? 'bg-purple-500/10 border-purple-400/30 focus:ring-purple-400/30' 
+                            : 'bg-white/10 border-white/20 focus:ring-white/30'
+                        }`}
                       />
                       <span className="text-xs text-white opacity-60">%</span>
                     </div>

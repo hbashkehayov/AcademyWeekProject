@@ -20,7 +20,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api',
+      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -108,12 +108,21 @@ class ApiService {
 
   // CSRF token management
   async getCsrfCookie(): Promise<void> {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+    // Remove /api from the URL for sanctum csrf-cookie endpoint
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api').replace('/api', '');
     console.log('ApiService: Getting CSRF cookie from:', `${baseUrl}/sanctum/csrf-cookie`);
     try {
-      const response = await this.api.get(`${baseUrl}/sanctum/csrf-cookie`);
+      // Use direct fetch instead of axios to avoid baseURL issues
+      const response = await fetch(`${baseUrl}/sanctum/csrf-cookie`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
       console.log('ApiService: CSRF cookie response:', response.status);
-      console.log('ApiService: CSRF cookie headers:', response.headers);
+      if (!response.ok) {
+        throw new Error(`CSRF cookie request failed with status ${response.status}`);
+      }
     } catch (error) {
       console.error('ApiService: Error getting CSRF cookie:', error);
       throw error;
@@ -154,9 +163,70 @@ class ApiService {
     return response.data;
   }
 
+  // Profile Management
+  async getUserProfile(): Promise<User> {
+    const response: AxiosResponse<User> = await this.api.get('/profile');
+    return response.data;
+  }
+
+  async updateUserProfile(data: {
+    name: string;
+    display_name: string;
+    email: string;
+    phone_number?: string;
+  }): Promise<User> {
+    await this.getCsrfCookie();
+    const response: AxiosResponse<User> = await this.api.put('/profile', data);
+    return response.data;
+  }
+
+  async changePassword(data: {
+    current_password: string;
+    new_password: string;
+    new_password_confirmation: string;
+  }): Promise<void> {
+    await this.getCsrfCookie();
+    await this.api.post('/profile/change-password', data);
+  }
+
+  async getAllRoles(): Promise<Role[]> {
+    const response: AxiosResponse<Role[]> = await this.api.get('/roles');
+    return response.data;
+  }
+
+  // Role Change Requests
+  async requestRoleChange(data: {
+    requested_role_id: string;
+    reason: string;
+  }): Promise<void> {
+    await this.getCsrfCookie();
+    await this.api.post('/profile/request-role-change', data);
+  }
+
+  async getUserRoleChangeRequests(): Promise<any[]> {
+    const response: AxiosResponse<any[]> = await this.api.get('/profile/role-change-requests');
+    return response.data;
+  }
+
+  // Admin: Role Change Request Management
+  async getAllPendingRoleChangeRequests(): Promise<any[]> {
+    const response: AxiosResponse<any[]> = await this.api.get('/admin/role-change-requests');
+    return response.data;
+  }
+
+  async processRoleChangeRequest(requestId: string, action: 'approve' | 'reject', adminComment?: string): Promise<void> {
+    await this.getCsrfCookie();
+    await this.api.post(`/admin/role-change-requests/${requestId}/process`, {
+      action,
+      admin_comment: adminComment
+    });
+  }
+
   // Tools
   async getTools(filters?: ToolFilters): Promise<PaginatedResponse<AiTool>> {
-    const response: AxiosResponse<PaginatedResponse<AiTool>> = await this.api.get('/tools', { params: filters });
+    // Request more items per page to avoid missing tools
+    const params = { ...filters, per_page: 100 };
+    const response: AxiosResponse<PaginatedResponse<AiTool>> = await this.api.get('/tools', { params });
     return response.data;
   }
 
@@ -274,7 +344,7 @@ class ApiService {
   }
 
   async getRoleBasedRecommendations(roleId?: string): Promise<AiTool[]> {
-    const response: AxiosResponse<AiTool[]> = await this.api.get('/recommendations/role-based', { 
+    const response: AxiosResponse<AiTool[]> = await this.api.get('/api/recommendations/role-based', { 
       params: roleId ? { role_id: roleId } : undefined 
     });
     return response.data;
@@ -282,12 +352,12 @@ class ApiService {
 
   // User Tools
   async getFavoriteTools(): Promise<AiTool[]> {
-    const response: AxiosResponse<AiTool[]> = await this.api.get('/user/favorites');
+    const response: AxiosResponse<AiTool[]> = await this.api.get('/api/user/favorites');
     return response.data;
   }
 
   async getToolHistory(): Promise<UserToolUsage[]> {
-    const response: AxiosResponse<UserToolUsage[]> = await this.api.get('/user/history');
+    const response: AxiosResponse<UserToolUsage[]> = await this.api.get('/api/user/history');
     return response.data;
   }
 

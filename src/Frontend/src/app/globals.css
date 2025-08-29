@@ -7,11 +7,29 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Light theme */
+.light {
+  --background: #ffffff;
+  --foreground: #171717;
+  --gradient-from: #f8fafc;
+  --gradient-to: #e2e8f0;
+}
+
+/* Dark theme */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --gradient-from: #1e293b;
+  --gradient-to: #0f172a;
+}
+
+/* Apply theme-specific background gradients */
+.light {
+  background: linear-gradient(135deg, var(--gradient-from) 0%, var(--gradient-to) 100%);
+}
+
+.dark {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
 body {
@@ -25,6 +43,53 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Instagram-like heart animation */
+@keyframes heartBurst {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.2) rotate(-10deg);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  45% {
+    transform: scale(1.15) rotate(-3deg);
+  }
+  60% {
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes heartFloat {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-60px) scale(1.5);
+    opacity: 0;
+  }
+}
+
+.heart-animation {
+  animation: heartBurst 0.8s ease-out forwards;
+}
+
+.heart-float {
+  animation: heartFloat 1s ease-out forwards;
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
 }
 
 @layer components {

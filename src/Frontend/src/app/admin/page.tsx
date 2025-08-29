@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import PendingToolDetails from '@/components/PendingToolDetails';
 import UserManagement from '@/components/UserManagement';
 import Reports from '@/components/Reports';
+import AllAITools from '@/components/AllAITools';
 
 interface PendingTool {
   id: string;
@@ -38,7 +39,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null);
   const [pendingTools, setPendingTools] = useState<PendingTool[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'tools' | 'users' | 'reports'>('tools');
+  const [activeTab, setActiveTab] = useState<'tools' | 'alltools' | 'users' | 'reports'>('tools');
   const [currentView, setCurrentView] = useState<AdminView>('list');
   const [selectedTool, setSelectedTool] = useState<PendingTool | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -222,6 +223,16 @@ export default function AdminPage() {
               Pending Tools
             </button>
             <button
+              onClick={() => setActiveTab('alltools')}
+              className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                activeTab === 'alltools'
+                  ? 'bg-white text-purple-700 shadow-lg'
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
+            >
+              All AI Tools
+            </button>
+            <button
               onClick={() => setActiveTab('users')}
               className={`px-6 py-3 rounded-xl font-semibold transition-all ${
                 activeTab === 'users'
@@ -358,6 +369,10 @@ export default function AdminPage() {
                 />
               )}
             </div>
+            
+            {activeTab === 'alltools' && currentView === 'list' && (
+              <AllAITools onBack={() => setActiveTab('tools')} />
+            )}
             
             {activeTab === 'users' && currentView === 'list' && (
               <UserManagement onBack={() => setActiveTab('tools')} />

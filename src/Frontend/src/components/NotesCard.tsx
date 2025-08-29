@@ -103,7 +103,7 @@ export default function NotesCard() {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Write your thoughts, ideas, or reminders here..."
-          className="w-full h-32 bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl p-4 text-white placeholder-white/60 resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm leading-relaxed"
+          className="w-full h-64 bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl p-4 text-white placeholder-white/60 resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm leading-relaxed"
         />
         
         {/* Character count */}

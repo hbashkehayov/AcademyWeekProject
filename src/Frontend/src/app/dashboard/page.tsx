@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiService } from '@/lib/api';
+import { useTheme } from '@/contexts/ThemeContext';
 import GreetingCard from '../../components/GreetingCard';
 import SuggestedTools from '../../components/SuggestedTools';
 import NotesCard from '../../components/NotesCard';
@@ -13,15 +14,17 @@ import ToolsList from '../../components/ToolsList';
 import ToolDetails from '../../components/ToolDetails';
 import AddToolForm from '../../components/AddToolForm';
 import AIAssistant from '../../components/AIAssistant';
+import Favourites from '../../components/Favourites';
 import Footer from '../../components/Footer';
 import type { AiTool } from '../../types';
 
-type ViewState = 'dashboard' | 'tools' | 'tool-details' | 'addTool' | 'aiAssistant';
+type ViewState = 'dashboard' | 'tools' | 'tool-details' | 'addTool' | 'aiAssistant' | 'favourites';
 
 export default function DashboardPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  const { isDarkMode, toggleTheme } = useTheme();
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedTool, setSelectedTool] = useState<AiTool | null>(null);
@@ -29,6 +32,9 @@ export default function DashboardPage() {
   const [existingTools, setExistingTools] = useState<AiTool[]>([]);
   const [toolsRefreshKey, setToolsRefreshKey] = useState(0);
   const [aiSuggestedToolData, setAiSuggestedToolData] = useState<any>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isDialogAnimating, setIsDialogAnimating] = useState(false);
+  const [favouritesRefreshTrigger, setFavouritesRefreshTrigger] = useState(0);
   const [user, setUser] = useState<any>({
     name: 'User',
     display_name: 'User',
@@ -76,9 +82,6 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [router]);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
 
   const handleBack = () => {
     // Clear user data on logout
@@ -86,10 +89,42 @@ export default function DashboardPage() {
     router.push('/');
   };
 
+  const handleLogoutClick = () => {
+    setShowLogoutDialog(true);
+    // Trigger fade-in animation after a short delay
+    setTimeout(() => {
+      setIsDialogAnimating(true);
+    }, 50);
+  };
+
+  const handleLogoutConfirm = async () => {
+    try {
+      await apiService.logout();
+      // The apiService.logout() already redirects to home page
+    } catch (error) {
+      console.error('Error logging out:', error);
+      // Even if logout fails, redirect to home
+      handleBack();
+    }
+  };
+
+  const handleLogoutCancel = () => {
+    setIsDialogAnimating(false);
+    // Wait for fade-out animation to complete before hiding dialog
+    setTimeout(() => {
+      setShowLogoutDialog(false);
+    }, 300);
+  };
+
   const handleViewChange = (newView: ViewState) => {
     if (isTransitioning || currentView === newView) return;
     
     setIsTransitioning(true);
+    
+    // If navigating to favourites, trigger a refresh
+    if (newView === 'favourites') {
+      setFavouritesRefreshTrigger(prev => prev + 1);
+    }
     
     // After fade out completes, switch view and fade in
     setTimeout(() => {
@@ -286,48 +321,29 @@ export default function DashboardPage() {
                   <div className="max-w-7xl mx-auto">
                     {/* Navigation Grid with Back to Home */}
                     <nav>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                        {/* Back to Home as first card */}
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Log-out with Confirmation Dialog */}
                         <button
-                          onClick={handleBack}
-                          className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                          onClick={handleLogoutClick}
+                          className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-red-500/10 rounded-xl transition-all duration-200 group"
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            backdropFilter: 'blur(10px)',
+                            boxShadow: 'inset 0 1px 0 rgba(239, 68, 68, 0.1)',
+                          }}
                         >
-                          <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">🏠</span>
-                          <span className="font-medium">Back Home</span>
-                          <span className="text-xs text-white/60 mt-1">Return to main</span>
+                          <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">🚪</span>
+                          <span className="font-medium">Log-out</span>
+                          <span className="text-xs text-white/60 mt-1">Exit dashboard</span>
                         </button>
-                        <a
-                          href="#"
-                          className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
-                        >
-                          <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">📊</span>
-                          <span className="font-medium">Analytics</span>
-                          <span className="text-xs text-white/60 mt-1">View insights</span>
-                        </a>
-                        <a
-                          href="#"
+                        <button
+                          onClick={() => handleViewChange('favourites')}
                           className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
                         >
                           <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">❤️</span>
                           <span className="font-medium">My Favourites</span>
                           <span className="text-xs text-white/60 mt-1">Saved tools</span>
-                        </a>
-                        <a
-                          href="#"
-                          className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
-                        >
-                          <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">📝</span>
-                          <span className="font-medium">My Submissions</span>
-                          <span className="text-xs text-white/60 mt-1">Your contributions</span>
-                        </a>
-                        <a
-                          href="#"
-                          className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
-                        >
-                          <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">⚙️</span>
-                          <span className="font-medium">Settings</span>
-                          <span className="text-xs text-white/60 mt-1">Preferences</span>
-                        </a>
+                        </button>
                       </div>
                     </nav>
                   </div>
@@ -344,7 +360,7 @@ export default function DashboardPage() {
               <div className="flex justify-center mb-8">
                 <div className="glass-morphism rounded-full p-3 shadow-xl border border-white/30 bg-white/15 backdrop-blur-lg transform transition-all duration-500 hover:scale-105">
                   <button
-                    onClick={toggleDarkMode}
+                    onClick={toggleTheme}
                     className="relative flex items-center w-20 h-10 rounded-full focus:outline-none focus:ring-4 focus:ring-white/20 transition-all duration-700 ease-out overflow-hidden"
                     style={{
                       background: isDarkMode 
@@ -449,11 +465,11 @@ export default function DashboardPage() {
                     {/* Greeting Card */}
                     <GreetingCard user={user} />
                     
-                    {/* Notes Card */}
-                    <NotesCard />
-                    
                     {/* Action Buttons */}
                     <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} />
+                    
+                    {/* Suggested AI Tools */}
+                    <SuggestedTools userRole={user.role} userId={user.id} />
                     
                     {/* Admin Operations - Only visible for owners */}
                     <AdminOperations user={user} />
@@ -461,7 +477,10 @@ export default function DashboardPage() {
 
                   {/* Right Column */}
                   <div className="lg:col-span-1 space-y-6">
-                    <SuggestedTools userRole={user.role} />
+                    {/* Quick Notes Card */}
+                    <NotesCard />
+                    
+                    {/* Notes Saved */}
                     <NotesPreview />
                   </div>
                 </div>
@@ -499,6 +518,12 @@ export default function DashboardPage() {
                   <AIAssistant onBack={showDashboard} onEditTool={handleEditAITool} />
                 </div>
               )}
+
+              {currentView === 'favourites' && (
+                <div className="max-w-6xl mx-auto px-6">
+                  <Favourites onBack={showDashboard} refreshTrigger={favouritesRefreshTrigger} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -510,6 +535,59 @@ export default function DashboardPage() {
           <Footer />
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      {showLogoutDialog && (
+        <div 
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+            isDialogAnimating 
+              ? 'bg-black/60 backdrop-blur-sm' 
+              : 'bg-black/0 backdrop-blur-0'
+          }`}
+        >
+          <div 
+            className={`bg-white/10 backdrop-blur-xl border border-white/30 rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl transition-all duration-300 ease-out transform ${
+              isDialogAnimating 
+                ? 'opacity-100 scale-100 translate-y-0' 
+                : 'opacity-0 scale-95 translate-y-4'
+            }`}
+          >
+            <div className="text-center">
+              <div className={`w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center transition-all duration-500 delay-100 ${
+                isDialogAnimating ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
+              }`}>
+                <span className="text-3xl">🚪</span>
+              </div>
+              <h3 className={`text-xl font-bold text-white mb-2 transition-all duration-400 delay-150 ${
+                isDialogAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}>
+                Confirm Logout
+              </h3>
+              <p className={`text-white/70 mb-6 transition-all duration-400 delay-200 ${
+                isDialogAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}>
+                Are you sure you want to leave the dashboard? You will be logged out and redirected to the main page.
+              </p>
+              <div className={`flex gap-3 justify-center transition-all duration-400 delay-250 ${
+                isDialogAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}>
+                <button
+                  onClick={handleLogoutCancel}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white rounded-lg transition-all duration-300 font-medium hover:scale-105"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogoutConfirm}
+                  className="px-6 py-3 bg-red-500 hover:bg-red-600 border border-red-500 hover:border-red-600 text-white rounded-lg transition-all duration-300 font-medium shadow-lg hover:scale-105"
+                >
+                  Yes, Log-out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

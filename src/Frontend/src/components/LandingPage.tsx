@@ -9,6 +9,7 @@ import TwoFactorMethodSelection from './TwoFactorMethodSelection';
 import TwoFactorSetup from './TwoFactorSetup';
 import EmailTwoFactorSetup from './EmailTwoFactorSetup';
 import RecoveryCodes from './RecoveryCodes';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type ViewState = 'landing' | 'login' | 'register' | 'method-selection' | 'email-2fa' | 'totp-2fa' | 'recovery-codes';
 
@@ -16,15 +17,13 @@ export default function LandingPage() {
   const [currentView, setCurrentView] = useState<ViewState>('landing');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [nextView, setNextView] = useState<ViewState | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
+  
+  const { isDarkMode, toggleTheme } = useTheme();
   const [twoFactorData, setTwoFactorData] = useState<any>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const router = useRouter();
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
 
   const handleViewChange = (newView: ViewState) => {
     if (isTransitioning || currentView === newView) return;
@@ -200,7 +199,7 @@ export default function LandingPage() {
               <div className="flex justify-center mt-8">
                 <div className="glass-morphism rounded-full p-3 shadow-xl border border-white/30 bg-white/15 backdrop-blur-lg transform transition-all duration-500 hover:scale-105">
                   <button
-                    onClick={toggleDarkMode}
+                    onClick={toggleTheme}
                     className="relative flex items-center w-20 h-10 rounded-full focus:outline-none focus:ring-4 focus:ring-white/20 transition-all duration-700 ease-out overflow-hidden"
                     style={{
                       background: isDarkMode 
@@ -298,7 +297,7 @@ export default function LandingPage() {
               <div className="flex justify-center mb-8">
                 <div className="glass-morphism rounded-full p-3 shadow-xl border border-white/30 bg-white/15 backdrop-blur-lg transform transition-all duration-500 hover:scale-105">
                   <button
-                    onClick={toggleDarkMode}
+                    onClick={toggleTheme}
                     className="relative flex items-center w-20 h-10 rounded-full focus:outline-none focus:ring-4 focus:ring-white/20 transition-all duration-700 ease-out overflow-hidden"
                     style={{
                       background: isDarkMode 
@@ -392,7 +391,7 @@ export default function LandingPage() {
               <div className="flex justify-center mb-8">
                 <div className="glass-morphism rounded-full p-3 shadow-xl border border-white/30 bg-white/15 backdrop-blur-lg transform transition-all duration-500 hover:scale-105">
                   <button
-                    onClick={toggleDarkMode}
+                    onClick={toggleTheme}
                     className="relative flex items-center w-20 h-10 rounded-full focus:outline-none focus:ring-4 focus:ring-white/20 transition-all duration-700 ease-out overflow-hidden"
                     style={{
                       background: isDarkMode 

@@ -200,6 +200,23 @@ Try asking me: 'Research DeepSeek Coder' or 'What tools are good for frontend de
         ]);
 
         try {
+            // Check for duplicate tools using the same logic as ToolController
+            $duplicateTool = $this->findDuplicateTool($validated['tool_data']['name']);
+            if ($duplicateTool) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'duplicate_tool',
+                    'message' => "A similar tool named '{$duplicateTool->name}' already exists in our catalogue.",
+                    'existing_tool' => [
+                        'id' => $duplicateTool->id,
+                        'name' => $duplicateTool->name,
+                        'description' => $duplicateTool->description,
+                        'website_url' => $duplicateTool->website_url,
+                        'status' => $duplicateTool->status
+                    ]
+                ], 409);
+            }
+
             // Create the tool with pending status
             $tool = AiTool::create([
                 'name' => $validated['tool_data']['name'],
@@ -236,6 +253,87 @@ Try asking me: 'Research DeepSeek Coder' or 'What tools are good for frontend de
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Find duplicate tools based on name similarity
+     * Uses multiple strategies to detect potential duplicates including typos
+     */
+    private function findDuplicateTool(string $name): ?AiTool
+    {
+        $normalizedName = $this->normalizeToolName($name);
+        
+        // Get all existing tools (including pending ones)
+        $existingTools = AiTool::all();
+        
+        foreach ($existingTools as $tool) {
+            $existingNormalized = $this->normalizeToolName($tool->name);
+            
+            // Strategy 1: Exact match after normalization
+            if ($normalizedName === $existingNormalized) {
+                return $tool;
+            }
+            
+            // Strategy 2: Levenshtein distance for typo detection
+            $distance = levenshtein($normalizedName, $existingNormalized);
+            $maxLength = max(strlen($normalizedName), strlen($existingNormalized));
+            
+            // Avoid division by zero
+            if ($maxLength > 0) {
+                // Calculate similarity percentage
+                $similarity = 1 - ($distance / $maxLength);
+                
+                // If similarity is above 85%, consider it a duplicate
+                if ($similarity > 0.85) {
+                    return $tool;
+                }
+            }
+            
+            // Strategy 3: Check if one name contains the other
+            if (strlen($normalizedName) > 3 && strlen($existingNormalized) > 3) {
+                if (str_contains($normalizedName, $existingNormalized) || str_contains($existingNormalized, $normalizedName)) {
+                    $lengthDifference = abs(strlen($normalizedName) - strlen($existingNormalized));
+                    if ($lengthDifference < 5) {
+                        return $tool;
+                    }
+                }
+            }
+            
+            // Strategy 4: Soundex comparison for phonetic similarity
+            if (soundex($normalizedName) === soundex($existingNormalized)) {
+                similar_text($normalizedName, $existingNormalized, $percent);
+                if ($percent > 70) {
+                    return $tool;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Normalize tool name for comparison
+     */
+    private function normalizeToolName(string $name): string
+    {
+        // Convert to lowercase
+        $normalized = strtolower($name);
+        
+        // Remove special characters but keep spaces
+        $normalized = preg_replace('/[^a-z0-9\s]+/', '', $normalized);
+        
+        // Remove common words that might be added/removed
+        $commonWords = ['ai', 'tool', 'app', 'platform', 'assistant', 'the', 'a', 'an', 'pro', 'plus', 'premium'];
+        $words = explode(' ', $normalized);
+        $filtered = array_filter($words, function($word) use ($commonWords) {
+            return !in_array($word, $commonWords) && strlen($word) > 1;
+        });
+        
+        // Rejoin and remove extra spaces
+        $normalized = implode(' ', $filtered);
+        $normalized = trim(preg_replace('/\s+/', ' ', $normalized));
+        
+        return $normalized;
     }
 
     /**
