@@ -168,7 +168,7 @@ The system comes pre-seeded with test users for each role:
 | Name | Email | Password | Role |
 |------|-------|----------|------|
 | Иван Иванов | ivan@admin.local | password | Owner |
-| Hakim Bashkehayov | h.bashkehayov@softart.bg | password | Owner |
+| Hristiyan Bashkehayov | h.bashkehayov@softart.bg | password | Owner |
 | Елена Петрова | elena@frontend.local | password | Frontend Developer |
 | Петър Георгиев | petar@backend.local | password | Backend Developer |
 | Мария Димитрова | maria@qa.local | password | QA Engineer |

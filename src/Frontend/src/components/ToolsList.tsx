@@ -9,6 +9,22 @@ interface ToolsListProps {
   onToolClick: (tool: AiTool) => void;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  tools_count?: number;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  display_name: string;
+  description?: string;
+}
+
 interface HeartAnimation {
   id: string;
   x: number;
@@ -22,6 +38,13 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
   const [favoriteTools, setFavoriteTools] = useState<Set<string>>(new Set());
   const [heartAnimations, setHeartAnimations] = useState<HeartAnimation[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Filter states
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -50,6 +73,31 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
 
     window.addEventListener('favouritesChanged', handleFavoritesChanged);
     return () => window.removeEventListener('favouritesChanged', handleFavoritesChanged);
+  }, []);
+
+  // Load categories and roles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        // Fetch categories
+        const categoriesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/categories`);
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          setCategories(categoriesData || []);
+        }
+        
+        // Fetch roles 
+        const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/roles`);
+        if (rolesResponse.ok) {
+          const rolesData = await rolesResponse.json();
+          setRoles(rolesData || []);
+        }
+      } catch (error) {
+        console.error('Error loading filter data:', error);
+      }
+    };
+    
+    loadFiltersData();
   }, []);
 
   useEffect(() => {
@@ -171,10 +219,28 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
     // apiService.toggleFavoriteTool(toolId).catch(console.error);
   };
 
-  const filteredTools = tools.filter(tool =>
-    tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tool.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTools = tools.filter(tool => {
+    // Search filter
+    const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Category filter
+    const matchesCategory = selectedCategory === 'all' || 
+      (tool.categories && Array.isArray(tool.categories) && 
+       tool.categories.some((cat: any) => 
+         cat.slug === selectedCategory || cat.name === selectedCategory
+       ));
+    
+    // Role filter
+    const matchesRole = selectedRole === 'all' ||
+      (tool.roles && Array.isArray(tool.roles) && 
+       tool.roles.some((role: any) => 
+         role.name === selectedRole || role.slug === selectedRole
+       )) ||
+      (tool.suggested_for_role && tool.suggested_for_role === selectedRole);
+    
+    return matchesSearch && matchesCategory && matchesRole;
+  });
 
   const getPricingDisplay = (pricing: any) => {
     if (!pricing) return 'Contact for pricing';
@@ -224,20 +290,119 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
+      {/* Search and Filter Bar */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
         <div className="relative">
           <input
             type="text"
             placeholder="Search tools..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl px-4 py-3 pl-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm"
+            className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-2xl px-4 py-3 pl-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm"
           />
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white opacity-60">
             🔍
           </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg transition-all duration-200 ${
+              showFilters ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+            title="Toggle Filters"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.121A1 1 0 013 6.414V4z" />
+            </svg>
+          </button>
         </div>
+        
+        {/* Filter Controls */}
+        {showFilters && (
+          <div className="bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-4 space-y-4 animate-fade-in">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Category Filter */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-white opacity-80 mb-2">
+                  Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                >
+                  <option value="all" className="bg-gray-800 text-white">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.slug} className="bg-gray-800 text-white">
+                      {category.name} {category.tools_count ? `(${category.tools_count})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Role Filter */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-white opacity-80 mb-2">
+                  Suitable for Role
+                </label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                >
+                  <option value="all" className="bg-gray-800 text-white">All Roles</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.name} className="bg-gray-800 text-white">
+                      {role.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {/* Active Filters Display */}
+            {(selectedCategory !== 'all' || selectedRole !== 'all') && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-white/20">
+                <span className="text-xs text-white opacity-60">Active filters:</span>
+                {selectedCategory !== 'all' && (
+                  <span className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-200 text-xs px-2 py-1 rounded-full">
+                    {categories.find(cat => cat.slug === selectedCategory)?.name || selectedCategory}
+                    <button
+                      onClick={() => setSelectedCategory('all')}
+                      className="hover:bg-blue-500/30 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {selectedRole !== 'all' && (
+                  <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-200 text-xs px-2 py-1 rounded-full">
+                    {roles.find(role => role.name === selectedRole)?.display_name || selectedRole}
+                    <button
+                      onClick={() => setSelectedRole('all')}
+                      className="hover:bg-green-500/30 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSelectedRole('all');
+                  }}
+                  className="text-xs text-white/60 hover:text-white underline transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tools Count */}
@@ -289,6 +454,30 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
                   <p className="text-sm text-white opacity-70 leading-relaxed mb-3">
                     {tool.description || 'No description available'}
                   </p>
+                  
+                  {/* Categories and Roles Tags */}
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {tool.categories && Array.isArray(tool.categories) && tool.categories.length > 0 && (
+                      tool.categories.slice(0, 2).map((category: any, index: number) => (
+                        <span
+                          key={index}
+                          className="bg-blue-500/20 text-blue-200 text-xs px-2 py-1 rounded-full"
+                        >
+                          {category.name || category}
+                        </span>
+                      ))
+                    )}
+                    {tool.roles && Array.isArray(tool.roles) && tool.roles.length > 0 && (
+                      tool.roles.slice(0, 2).map((role: any, index: number) => (
+                        <span
+                          key={index}
+                          className="bg-green-500/20 text-green-200 text-xs px-2 py-1 rounded-full"
+                        >
+                          {role.display_name || role.name || role}
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
 

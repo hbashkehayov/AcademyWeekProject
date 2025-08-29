@@ -30,7 +30,7 @@ try {
     $user = User::updateOrCreate(
         ['email' => 'h.bashkehayov@softart.bg'],
         [
-            'name' => 'Hakim Bashkehayov',
+            'name' => 'Hristiyan Bashkehayov',
             'email' => 'h.bashkehayov@softart.bg',
             'password' => Hash::make('password'),
             'role_id' => $ownerRole->id,
