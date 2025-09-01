@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AiTool;
 use App\Models\User;
+use App\Services\RecommendationEngine;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
@@ -103,6 +104,10 @@ class AdminController extends Controller
         $tool->status = 'active';
         $tool->approved_by = $user->id;
         $tool->save();
+
+        // Clear recommendation cache so the newly approved tool appears immediately
+        $recommendationEngine = app(RecommendationEngine::class);
+        $recommendationEngine->clearCaches();
 
         return response()->json([
             'success' => true,

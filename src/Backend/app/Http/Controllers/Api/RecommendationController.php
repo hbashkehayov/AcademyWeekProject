@@ -132,8 +132,8 @@ class RecommendationController extends Controller
             $totalAvailable = $this->recommendationEngine->getTotalRecommendationsCount($roleName);
             $hasMore = ($offset + $limit) < $totalAvailable;
             
-            // Get recently added tools for this role
-            $recentlyAdded = $this->recommendationEngine->getRecentlyAddedTools($roleName, 7, 3);
+            // Get recently added tools by users of this role
+            $recentlyAdded = $this->recommendationEngine->getRecentlyAddedToolsByRole($roleName, 7, 5);
             
             return response()->json([
                 'success' => true,

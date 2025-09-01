@@ -372,6 +372,16 @@ export default function SuggestedTools({ userRole, userId, onViewRecommendations
     if (roleName) {
       console.log('SuggestedTools: Starting fetch for role:', roleName);
       fetchRecommendationsWithRetry(roleName, limit, 0);
+      
+      // Set up auto-refresh every 30 seconds
+      const refreshInterval = setInterval(() => {
+        console.log('SuggestedTools: Auto-refreshing recommendations');
+        fetchRecommendationsWithRetry(roleName, limit, 0);
+      }, 30000); // Refresh every 30 seconds
+      
+      return () => {
+        clearInterval(refreshInterval);
+      };
     } else {
       console.log('SuggestedTools: No roleName provided, skipping fetch');
     }

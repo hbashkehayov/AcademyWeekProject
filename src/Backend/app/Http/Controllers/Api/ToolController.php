@@ -109,12 +109,16 @@ class ToolController extends Controller
         }
 
         if (isset($validated['roles'])) {
+            // Use syncWithoutDetaching to avoid duplicate entries
+            $rolesToAttach = [];
             foreach ($validated['roles'] as $role) {
-                $tool->roles()->attach($role['id'], [
+                // Ensure we don't have duplicate role IDs
+                $rolesToAttach[$role['id']] = [
                     'relevance_score' => $role['relevance_score'] ?? 50,
                     'use_cases' => $role['use_cases'] ?? null,
-                ]);
+                ];
             }
+            $tool->roles()->sync($rolesToAttach);
         }
 
         return response()->json($tool->load(['categories', 'roles']), 201);
@@ -343,7 +347,7 @@ class ToolController extends Controller
                 'tool_id' => $tool->id,
             ],
             [
-                'usage_count' => 0,
+                'usage_frequency' => 0,
                 'is_favorite' => false,
             ]
         );
@@ -371,12 +375,12 @@ class ToolController extends Controller
                 'tool_id' => $tool->id,
             ],
             [
-                'usage_count' => 0,
+                'usage_frequency' => 0,
                 'is_favorite' => false,
             ]
         );
 
-        $usage->usage_count++;
+        $usage->usage_frequency++;
         $usage->last_used_at = now();
         $usage->save();
 

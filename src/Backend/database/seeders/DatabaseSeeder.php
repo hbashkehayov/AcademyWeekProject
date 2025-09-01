@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             OrganizationSeeder::class,
             UserSeeder::class,
             AiToolSeeder::class,
+            RecipeSeeder::class,
         ]);
     }
 }

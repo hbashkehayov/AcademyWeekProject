@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\AIAssistantController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -59,21 +60,31 @@ Route::prefix('2fa')->group(function () {
     Route::post('/skip-setup', [TwoFactorController::class, 'skipSetup']);
 });
 
-// Temporary: Allow admin endpoints without authentication for testing
-Route::get('/admin/pending-tools', [AdminController::class, 'getPendingTools']);
-Route::post('/admin/tools/{tool}/approve', [AdminController::class, 'approveTool']);
-Route::post('/admin/tools/{tool}/reject', [AdminController::class, 'rejectTool']);
-Route::get('/admin/users', [AdminController::class, 'getUsers']);
-Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser']);
-Route::get('/admin/stats', [AdminController::class, 'getDashboardStats']);
-Route::get('/admin/active-tools', [AdminController::class, 'getActiveTools']);
-Route::put('/admin/tools/{tool}', [AdminController::class, 'updateTool']);
-Route::delete('/admin/tools/{tool}', [AdminController::class, 'deleteTool']);
+// Admin routes - Protected: Requires authentication and owner role
+Route::middleware(['auth:sanctum', 'role:owner'])->prefix('admin')->group(function () {
+    Route::get('/pending-tools', [AdminController::class, 'getPendingTools']);
+    Route::post('/tools/{tool}/approve', [AdminController::class, 'approveTool']);
+    Route::post('/tools/{tool}/reject', [AdminController::class, 'rejectTool']);
+    Route::get('/users', [AdminController::class, 'getUsers']);
+    Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);
+    Route::get('/stats', [AdminController::class, 'getDashboardStats']);
+    Route::get('/active-tools', [AdminController::class, 'getActiveTools']);
+    Route::put('/tools/{tool}', [AdminController::class, 'updateTool']);
+    Route::delete('/tools/{tool}', [AdminController::class, 'deleteTool']);
+});
 
 // Temporary: Allow recommendations without authentication for testing
 Route::get('/recommendations', [RecommendationController::class, 'index']);
 Route::get('/recommendations/role-based', [RecommendationController::class, 'roleBasedRecommendations']);
 Route::post('/recommendations/track-interaction', [RecommendationController::class, 'trackInteraction']);
+
+// Recipe routes - Allow access without authentication for testing
+Route::get('/recipes', [RecipeController::class, 'index']);
+Route::get('/recipes/featured', [RecipeController::class, 'featured']);
+Route::get('/recipes/popular', [RecipeController::class, 'popular']);
+Route::get('/recipes/{recipe}', [RecipeController::class, 'show']);
+Route::post('/recipes/{recipe}/increment-uses', [RecipeController::class, 'incrementUses']);
+Route::post('/recipes', [RecipeController::class, 'store']);
 
 // Authentication required routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -114,6 +125,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // User favorites and history
     Route::get('/user/favorites', [ToolController::class, 'favorites']);
     Route::get('/user/history', [ToolController::class, 'history']);
+    
+    // Authenticated recipe routes
+    Route::put('/recipes/{recipe}', [RecipeController::class, 'update']);
+    Route::delete('/recipes/{recipe}', [RecipeController::class, 'destroy']);
     
     // Admin routes (Owner only)
     Route::prefix('admin')->group(function () {

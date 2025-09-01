@@ -10,6 +10,7 @@ import TwoFactorSetup from './TwoFactorSetup';
 import EmailTwoFactorSetup from './EmailTwoFactorSetup';
 import RecoveryCodes from './RecoveryCodes';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ViewState = 'landing' | 'login' | 'register' | 'method-selection' | 'email-2fa' | 'totp-2fa' | 'recovery-codes';
 
@@ -18,11 +19,13 @@ export default function LandingPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [nextView, setNextView] = useState<ViewState | null>(null);
   const [pendingUser, setPendingUser] = useState<any>(null);
-  
-  const { isDarkMode, toggleTheme } = useTheme();
   const [twoFactorData, setTwoFactorData] = useState<any>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const router = useRouter();
+  
+  // Get context values - these are safe to use after providers are loaded
+  const { isDarkMode, toggleTheme } = useTheme();
+  const { isLoading, isAuthenticated } = useAuth();
 
 
   const handleViewChange = (newView: ViewState) => {
@@ -130,6 +133,25 @@ export default function LandingPage() {
     localStorage.setItem('sanctum_user', JSON.stringify(user));
     showDashboard();
   };
+  // Show loading screen while auth is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center">
+        <div className="glass-morphism p-8 rounded-3xl text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-white mb-2">Loading...</h2>
+          <p className="text-white/70">Please wait while we prepare your experience</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to dashboard if already authenticated
+  if (isAuthenticated) {
+    router.push('/dashboard');
+    return null;
+  }
+
   return (
     <div 
       className="relative overflow-hidden"

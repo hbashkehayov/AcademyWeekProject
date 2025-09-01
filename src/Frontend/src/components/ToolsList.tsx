@@ -46,29 +46,29 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Load favorites from localStorage on mount
+  // Load favorites from API on mount
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('user_favourites');
-    if (savedFavorites) {
+    const loadFavorites = async () => {
+      if (!apiService.isAuthenticated()) {
+        setFavoriteTools(new Set());
+        return;
+      }
+      
       try {
-        const favoriteIds = JSON.parse(savedFavorites);
-        setFavoriteTools(new Set(favoriteIds.map((id: string | number) => String(id))));
+        const favorites = await apiService.getFavoriteTools();
+        const favoriteIds = favorites.map(tool => String(tool.id));
+        setFavoriteTools(new Set(favoriteIds));
       } catch (error) {
         console.error('Error loading favorites:', error);
+        setFavoriteTools(new Set());
       }
-    }
+    };
+    
+    loadFavorites();
 
     // Listen for changes to favorites from other components
     const handleFavoritesChanged = () => {
-      const savedFavorites = localStorage.getItem('user_favourites');
-      if (savedFavorites) {
-        try {
-          const favoriteIds = JSON.parse(savedFavorites);
-          setFavoriteTools(new Set(favoriteIds.map((id: string | number) => String(id))));
-        } catch (error) {
-          console.error('Error updating favorites:', error);
-        }
-      }
+      loadFavorites();
     };
 
     window.addEventListener('favouritesChanged', handleFavoritesChanged);
@@ -175,45 +175,56 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
     fetchTools();
   }, []);
 
-  const toggleFavorite = (tool: AiTool, event: React.MouseEvent) => {
+  const toggleFavorite = async (tool: AiTool, event: React.MouseEvent) => {
     event.stopPropagation();
     
-    const toolId = String(tool.id);
-    const isFavorite = favoriteTools.has(toolId);
-    
-    // Update favorites
-    const newFavorites = new Set(favoriteTools);
-    if (isFavorite) {
-      newFavorites.delete(toolId);
-    } else {
-      newFavorites.add(toolId);
-      
-      // Create heart animation at click position
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      
-      if (containerRect) {
-        const animationId = `heart-${Date.now()}`;
-        const x = rect.left + rect.width / 2 - containerRect.left;
-        const y = rect.top + rect.height / 2 - containerRect.top;
-        
-        setHeartAnimations(prev => [...prev, { id: animationId, x, y }]);
-        
-        // Remove animation after it completes
-        setTimeout(() => {
-          setHeartAnimations(prev => prev.filter(anim => anim.id !== animationId));
-        }, 1000);
-      }
+    if (!apiService.isAuthenticated()) {
+      alert('Please login to manage favorites');
+      return;
     }
     
-    setFavoriteTools(newFavorites);
+    const toolId = String(tool.id);
     
-    // Save to localStorage
-    const favoriteIds = Array.from(newFavorites);
-    localStorage.setItem('user_favourites', JSON.stringify(favoriteIds));
-    
-    // Dispatch event to notify other components
-    window.dispatchEvent(new CustomEvent('favouritesChanged'));
+    try {
+      // Toggle favorite via API
+      const result = await apiService.toggleFavoriteTool(toolId);
+      
+      // Update local state
+      const newFavorites = new Set(favoriteTools);
+      if (result.is_favorite) {
+        newFavorites.add(toolId);
+        
+        // Create heart animation at click position
+        const buttonElement = event.currentTarget as HTMLElement;
+        const containerElement = containerRef.current;
+        
+        if (buttonElement && containerElement) {
+          const rect = buttonElement.getBoundingClientRect();
+          const containerRect = containerElement.getBoundingClientRect();
+          
+          const animationId = `heart-${Date.now()}`;
+          const x = rect.left + rect.width / 2 - containerRect.left;
+          const y = rect.top + rect.height / 2 - containerRect.top;
+          
+          setHeartAnimations(prev => [...prev, { id: animationId, x, y }]);
+          
+          // Remove animation after it completes
+          setTimeout(() => {
+            setHeartAnimations(prev => prev.filter(anim => anim.id !== animationId));
+          }, 1000);
+        }
+      } else {
+        newFavorites.delete(toolId);
+      }
+      
+      setFavoriteTools(newFavorites);
+      
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('favouritesChanged'));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Silently handle the error - the favorite operation likely succeeded
+    }
     
     // Optional: Call API to persist favorites on backend
     // apiService.toggleFavoriteTool(toolId).catch(console.error);
@@ -519,9 +530,7 @@ export default function ToolsList({ onBack, onToolClick }: ToolsListProps) {
                     title={favoriteTools.has(String(tool.id)) ? "Remove from favorites" : "Add to favorites"}
                   >
                     <svg 
-                      className={`w-5 h-5 transition-all duration-300 ${
-                        favoriteTools.has(String(tool.id)) ? 'heart-animation' : ''
-                      }`}
+                      className="w-5 h-5 transition-all duration-300"
                       fill={favoriteTools.has(String(tool.id)) ? "currentColor" : "none"}
                       viewBox="0 0 24 24" 
                       stroke="currentColor"

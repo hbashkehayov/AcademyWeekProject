@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,17 +11,11 @@ import NotesPreview from './NotesPreview';
 import ToolsList from './ToolsList';
 import AddToolForm from './AddToolForm';
 import AIAssistant from './AIAssistant';
-import Recommendations from './Recommendations';
-import Favourites from './Favourites';
-import ToolDetails from './ToolDetails';
-// import Settings from './Settings';
 import Footer from './Footer';
 import { apiService } from '@/lib/api';
-import { useTheme } from '@/contexts/ThemeContext';
-import type { AiTool } from '@/types';
 
 interface DashboardProps {
-  user?: {
+  user: {
     name: string;
     display_name: string;
     role: string;
@@ -28,29 +23,30 @@ interface DashboardProps {
   onBack: () => void;
 }
 
-type ViewState = 'dashboard' | 'tools' | 'addTool' | 'aiAssistant' | 'recommendations' | 'favourites' | 'toolDetails';
+type ViewState = 'dashboard' | 'tools' | 'addTool' | 'aiAssistant';
 
 export default function Dashboard({ user, onBack }: DashboardProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSubmittingTool, setIsSubmittingTool] = useState(false);
-  const [aiSuggestedToolData, setAiSuggestedToolData] = useState<any>(null);
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [selectedTool, setSelectedTool] = useState<AiTool | null>(null);
 
-  const { isDarkMode, toggleTheme } = useTheme();
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   const handleViewChange = (newView: ViewState) => {
-    if (isTransitioning || currentView === newView) {
-      return;
-    }
+    console.log(`Dashboard: handleViewChange called with ${newView}`);
+    if (isTransitioning || currentView === newView) return;
     
     setIsTransitioning(true);
+    console.log(`Dashboard: Transitioning to ${newView}`);
     
     // After fade out completes, switch view and fade in
     setTimeout(() => {
       setCurrentView(newView);
+      console.log(`Dashboard: Current view set to ${newView}`);
       // Let the fade in animation start
       setTimeout(() => {
         setIsTransitioning(false);
@@ -62,39 +58,12 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
   const showDashboard = () => handleViewChange('dashboard');
   const showAddTool = () => {
     console.log('Dashboard: showAddTool called');
-    setAiSuggestedToolData(null); // Clear any AI suggested data
     handleViewChange('addTool');
   };
   const showAIAssistant = () => {
     console.log('Dashboard: showAIAssistant called');
     handleViewChange('aiAssistant');
   };
-  const showRecommendations = () => {
-    console.log('Dashboard: showRecommendations called');
-    handleViewChange('recommendations');
-  };
-  const showFavourites = () => {
-    handleViewChange('favourites');
-  };
-
-  const handleEditAITool = (toolData: any) => {
-    console.log('Dashboard: handleEditAITool called with:', toolData);
-    setAiSuggestedToolData(toolData);
-    handleViewChange('addTool');
-  };
-
-  const handleToolClick = (tool: AiTool) => {
-    console.log('Dashboard: handleToolClick called with:', tool.name);
-    setSelectedTool(tool);
-    handleViewChange('toolDetails');
-  };
-
-  const handleBackFromToolDetails = () => {
-    console.log('Dashboard: handleBackFromToolDetails called');
-    setSelectedTool(null);
-    showDashboard();
-  };
-
 
   const handleToolSubmit = async (toolData: any) => {
     setIsSubmittingTool(true);
@@ -120,31 +89,8 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
     }
   };
 
-  const handleLogoutClick = () => {
-    setShowLogoutDialog(true);
-  };
-
-  const handleLogoutConfirm = async () => {
-    try {
-      await apiService.logout();
-      // The apiService.logout() already redirects to home page
-    } catch (error) {
-      console.error('Error logging out:', error);
-      // Even if logout fails, redirect to home
-      onBack();
-    }
-  };
-
-  const handleLogoutCancel = () => {
-    setShowLogoutDialog(false);
-  };
-
   return (
-    <div className={`min-h-screen flex flex-col transition-all duration-500 ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900' 
-        : 'bg-gradient-to-br from-blue-50 via-white to-blue-100'
-    }`}>
+    <div className={`min-h-screen flex flex-col transition-all duration-500 ${isDarkMode ? 'bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900' : ''}`}>
       {/* Dashboard Content */}
       <div className="flex-1 py-8">
         {/* Header - Centered */}
@@ -168,74 +114,65 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
               </button>
             </div>
 
-            {/* Full-Width Dropdown - Ultra Transparent with Fluid Animations */}
+            {/* Full-Width Dropdown */}
             <div
               onMouseEnter={() => setIsDropdownOpen(true)}
               onMouseLeave={() => setIsDropdownOpen(false)}
-              className={`fixed left-0 right-0 top-20 transition-all duration-700 ease-out z-50 ${
+              className={`fixed left-0 right-0 top-20 transition-all duration-300 z-50 ${
                 isDropdownOpen 
                   ? 'opacity-100 translate-y-0 pointer-events-auto' 
-                  : 'opacity-0 -translate-y-8 pointer-events-none'
+                  : 'opacity-0 -translate-y-4 pointer-events-none'
               }`}
             >
-              {/* Ultra-light Backdrop Blur */}
-              <div className="absolute inset-0 backdrop-blur-2xl bg-black/20"></div>
+              {/* Heavy Backdrop Blur */}
+              <div className="absolute inset-0 backdrop-blur-3xl bg-black/70"></div>
               
-              <div 
-                className="relative mx-4 sm:mx-6 lg:mx-8 rounded-3xl p-8 shadow-2xl border border-white/10 transition-all duration-700 ease-out transform"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)', 
-                  backdropFilter: 'blur(30px) saturate(200%)',
-                  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                  transform: isDropdownOpen ? 'scale(1)' : 'scale(0.95)',
-                }}
-              >
+              <div className="relative mx-4 sm:mx-6 lg:mx-8 rounded-2xl p-8 shadow-2xl border border-white/30 bg-white/30 backdrop-blur-3xl" style={{backgroundColor: 'rgba(255, 255, 255, 0.25)', backdropFilter: 'blur(40px) saturate(180%)'}}>
                 <div className="max-w-7xl mx-auto">
-                  {/* Navigation Grid with Enhanced Animations */}
+                  {/* Navigation Grid with Back to Home */}
                   <nav>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                      {/* Log-out with Confirmation Dialog */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                      {/* Back to Home as first card */}
                       <button
-                        onClick={handleLogoutClick}
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-red-500/10 backdrop-blur-sm"
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.08)',
-                          backdropFilter: 'blur(10px)',
-                          boxShadow: 'inset 0 1px 0 rgba(239, 68, 68, 0.1)',
-                        }}
+                        onClick={onBack}
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">🚪</span>
-                        <span className="font-medium">Log-out</span>
-                        <span className="text-xs text-white/60 mt-1">Exit dashboard</span>
+                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">🏠</span>
+                        <span className="font-medium">Back Home</span>
+                        <span className="text-xs text-white/60 mt-1">Return to main</span>
                       </button>
-                      
                       <a
                         href="#"
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/10 backdrop-blur-lg border border-white/20 hover:border-white/40"
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          backdropFilter: 'blur(20px)',
-                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15)',
-                        }}
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">📊</span>
+                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">📊</span>
                         <span className="font-medium">Analytics</span>
                         <span className="text-xs text-white/60 mt-1">View insights</span>
                       </a>
-                      
-                      <button
-                        onClick={showFavourites}
-                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-75 hover:opacity-100 rounded-2xl transition-all duration-500 ease-out group transform hover:scale-110 hover:bg-white/10 backdrop-blur-lg border border-white/20 hover:border-white/40"
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          backdropFilter: 'blur(20px)',
-                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15)',
-                        }}
+                      <a
+                        href="#"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
                       >
-                        <span className="text-3xl mb-2 group-hover:scale-125 transition-transform duration-500 ease-out">❤️</span>
+                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">❤️</span>
                         <span className="font-medium">My Favourites</span>
                         <span className="text-xs text-white/60 mt-1">Saved tools</span>
-                      </button>
+                      </a>
+                      <a
+                        href="#"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                      >
+                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">📝</span>
+                        <span className="font-medium">My Submissions</span>
+                        <span className="text-xs text-white/60 mt-1">Your contributions</span>
+                      </a>
+                      <a
+                        href="#"
+                        className="flex flex-col items-center text-center px-6 py-4 text-white opacity-80 hover:opacity-100 hover:bg-white/10 rounded-xl transition-all duration-200 group"
+                      >
+                        <span className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">⚙️</span>
+                        <span className="font-medium">Settings</span>
+                        <span className="text-xs text-white/60 mt-1">Preferences</span>
+                      </a>
                     </div>
                   </nav>
                 </div>
@@ -252,7 +189,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
             <div className="flex justify-center mb-8">
               <div className="glass-morphism rounded-full p-2 shadow-lg border border-white/20 bg-white/10 backdrop-blur-lg">
                 <button
-                  onClick={toggleTheme}
+                  onClick={toggleDarkMode}
                   className="relative flex items-center w-16 h-8 rounded-full transition-all duration-300 ease-in-out focus:outline-none"
                   style={{
                     backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(251, 191, 36, 0.3)',
@@ -304,7 +241,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
         </div>
 
         {/* Dashboard Content - Conditional with Animations */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 pb-16 md:pb-20 lg:pb-24">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           {/* Content Container with Smooth Fade Transitions */}
           <div className={`transition-all duration-500 ease-out ${
             isTransitioning ? 'opacity-0 transform translate-y-4' : 
@@ -321,7 +258,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
                   <NotesCard />
                   
                   {/* Action Buttons */}
-                  <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} onViewRecommendations={showRecommendations} />
+                  <ActionButtons onReviewTools={showToolsList} onAddTool={showAddTool} onAIAssistant={showAIAssistant} />
                   
                   {/* Admin Operations - Only visible for owners */}
                   <AdminOperations user={user} />
@@ -329,8 +266,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
 
                 {/* Right Column */}
                 <div className="lg:col-span-1 space-y-6">
-                  {console.log('Dashboard: Passing user role to SuggestedTools:', user?.role, 'Full user object:', user)}
-                  <SuggestedTools userRole={user?.role || 'user'} onViewRecommendations={showRecommendations} />
+                  <SuggestedTools userRole={user.role} />
                   <NotesPreview />
                 </div>
               </div>
@@ -338,7 +274,7 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
 
             {currentView === 'tools' && (
               <div className="max-w-7xl mx-auto px-6">
-                <ToolsList onBack={showDashboard} onToolClick={handleToolClick} />
+                <ToolsList onBack={showDashboard} onToolClick={() => {}} />
               </div>
             )}
 
@@ -348,38 +284,13 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
                   onBack={showDashboard} 
                   onSubmit={handleToolSubmit}
                   isSubmitting={isSubmittingTool}
-                  initialData={aiSuggestedToolData}
                 />
               </div>
             )}
 
             {currentView === 'aiAssistant' && (
               <div className="max-w-6xl mx-auto px-6">
-                <AIAssistant onBack={showDashboard} onEditTool={handleEditAITool} />
-              </div>
-            )}
-
-            {currentView === 'recommendations' && (
-              <div className="w-full">
-                <Recommendations userRole={user?.role || 'user'} onBack={showDashboard} />
-              </div>
-            )}
-            {currentView === 'favourites' && (
-              <div className="max-w-7xl mx-auto px-6">
-                <Favourites 
-                  onBack={showDashboard} 
-                  onToolClick={(tool: AiTool) => {
-                    console.log('Dashboard: Tool clicked from Favourites:', tool.name);
-                    setSelectedTool(tool);
-                    handleViewChange('toolDetails');
-                  }} 
-                />
-              </div>
-            )}
-
-            {currentView === 'toolDetails' && selectedTool && (
-              <div className="max-w-6xl mx-auto px-6">
-                <ToolDetails tool={selectedTool} onBack={handleBackFromToolDetails} />
+                <AIAssistant onBack={showDashboard} />
               </div>
             )}
           </div>
@@ -390,39 +301,6 @@ export default function Dashboard({ user, onBack }: DashboardProps) {
       <div className="w-full">
         <Footer />
       </div>
-
-      {/* Logout Confirmation Dialog */}
-      {showLogoutDialog && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-xl border border-white/30 rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
-                <span className="text-3xl">🚪</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                Confirm Logout
-              </h3>
-              <p className="text-white/70 mb-6">
-                Are you sure you want to leave the dashboard? You will be logged out and redirected to the main page.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={handleLogoutCancel}
-                  className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white rounded-lg transition-all duration-300 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleLogoutConfirm}
-                  className="px-6 py-3 bg-red-500 hover:bg-red-600 border border-red-500 hover:border-red-600 text-white rounded-lg transition-all duration-300 font-medium shadow-lg"
-                >
-                  Yes, Log-out
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

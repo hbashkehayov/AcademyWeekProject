@@ -32,9 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const currentUser = await apiService.getCurrentUser();
             setUser(currentUser);
           } catch (error) {
-            // Session expired, clear stored data
-            console.log('Session expired, clearing stored user');
-            await apiService.logout(); // This will clear localStorage and redirect
+            // Session expired or user not authenticated, clear stored data
+            console.log('Session validation failed, clearing stored user');
+            apiService.clearUserData(); // Clear localStorage without redirecting
+            setUser(null);
           }
         }
       } catch (error) {

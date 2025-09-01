@@ -134,7 +134,8 @@ class RecommendationEngine
     {
         $cacheKey = $userId ? "recommendations:{$roleName}:{$limit}:{$offset}:{$userId}" : "recommendations:{$roleName}:{$limit}:{$offset}";
         
-        return Cache::remember($cacheKey, 300, function () use ($roleName, $limit, $offset, $userId) { // Cache for 5 minutes
+        // Reduce cache time to 1 minute for more frequent updates
+        return Cache::remember($cacheKey, 60, function () use ($roleName, $limit, $offset, $userId) { // Cache for 1 minute
             // Include active tools and recently added pending tools by the user
             $query = AiTool::with(['categories', 'submittedBy']);
             
@@ -659,7 +660,7 @@ class RecommendationEngine
     /**
      * Get recently added tools by users for trending analysis
      */
-    public function getRecentlyAddedTools(string $roleName, int $days = 7, int $limit = 5): Collection
+    public function getRecentlyAddedToolsByRole(string $roleName, int $days = 7, int $limit = 5): Collection
     {
         $cacheKey = "recently_added_tools:{$roleName}:{$days}:{$limit}";
         
@@ -677,6 +678,21 @@ class RecommendationEngine
                 ->groupBy(['tool_id', 'user_id', 'created_at'])
                 ->orderByDesc('created_at')
                 ->limit($limit)
+                ->get();
+        });
+    }
+
+    /**
+     * Get recently added active tools (approved in the last 7 days)
+     */
+    public function getRecentlyAddedTools(int $limit = 5): Collection
+    {
+        return Cache::remember('recently_added_tools', 60, function () use ($limit) {
+            return AiTool::where('status', 'active')
+                ->where('updated_at', '>=', now()->subDays(7))
+                ->orderBy('updated_at', 'desc')
+                ->limit($limit)
+                ->with(['categories'])
                 ->get();
         });
     }

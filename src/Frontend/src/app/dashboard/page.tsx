@@ -10,6 +10,7 @@ import NotesCard from '../../components/NotesCard';
 import ActionButtons from '../../components/ActionButtons';
 import AdminOperations from '../../components/AdminOperations';
 import NotesPreview from '../../components/NotesPreview';
+import RecipeBuilder from '../../components/RecipeBuilder';
 import ToolsList from '../../components/ToolsList';
 import ToolDetails from '../../components/ToolDetails';
 import AddToolForm from '../../components/AddToolForm';
@@ -482,6 +483,9 @@ export default function DashboardPage() {
                     
                     {/* Notes Saved */}
                     <NotesPreview />
+                    
+                    {/* Recipe Builder */}
+                    <RecipeBuilder />
                   </div>
                 </div>
               )}

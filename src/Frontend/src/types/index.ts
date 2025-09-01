@@ -159,3 +159,41 @@ export interface RecommendationFilters {
   role_id?: string;
   limit?: number;
 }
+
+export interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  goal: string;
+  steps: RecipeStep[];
+  estimated_time?: number;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  created_by: string;
+  uses_count: number;
+  success_rate: number;
+  tags?: string[];
+  status: 'active' | 'draft' | 'archived';
+  is_featured: boolean;
+  categories?: string[];
+  creator?: User;
+  formatted_estimated_time?: string;
+  difficulty_color?: string;
+  success_rate_percentage?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecipeStep {
+  step: number;
+  tool_name: string;
+  instruction: string;
+  tool_id?: string;
+}
+
+export interface RecipeFilters {
+  difficulty?: string;
+  category?: string;
+  search?: string;
+  sort?: 'featured' | 'popular' | 'success_rate' | 'newest';
+  limit?: number;
+}

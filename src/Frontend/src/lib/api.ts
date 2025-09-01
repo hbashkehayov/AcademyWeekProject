@@ -13,6 +13,8 @@ import type {
   RegisterData,
   ToolFilters,
   RecommendationFilters,
+  Recipe,
+  RecipeFilters,
 } from '@/types';
 
 class ApiService {
@@ -94,6 +96,11 @@ class ApiService {
       localStorage.removeItem('sanctum_user');
       localStorage.removeItem('auth_token'); // Legacy cleanup
     }
+  }
+
+  // Public method to clear user data without redirecting
+  public clearUserData(): void {
+    this.clearAuth();
   }
 
   // Check if user is authenticated
@@ -352,12 +359,12 @@ class ApiService {
 
   // User Tools
   async getFavoriteTools(): Promise<AiTool[]> {
-    const response: AxiosResponse<AiTool[]> = await this.api.get('/api/user/favorites');
+    const response: AxiosResponse<AiTool[]> = await this.api.get('/user/favorites');
     return response.data;
   }
 
   async getToolHistory(): Promise<UserToolUsage[]> {
-    const response: AxiosResponse<UserToolUsage[]> = await this.api.get('/api/user/history');
+    const response: AxiosResponse<UserToolUsage[]> = await this.api.get('/user/history');
     return response.data;
   }
 
@@ -423,6 +430,47 @@ class ApiService {
         recentTools: [] 
       };
     }
+  }
+
+  // Recipe API methods
+  async getRecipes(filters?: RecipeFilters): Promise<ApiResponse<Recipe[]>> {
+    const response: AxiosResponse<ApiResponse<Recipe[]>> = await this.api.get('/recipes', {
+      params: filters
+    });
+    return response.data;
+  }
+
+  async getFeaturedRecipes(): Promise<ApiResponse<Recipe[]>> {
+    const response: AxiosResponse<ApiResponse<Recipe[]>> = await this.api.get('/recipes/featured');
+    return response.data;
+  }
+
+  async getPopularRecipes(): Promise<ApiResponse<Recipe[]>> {
+    const response: AxiosResponse<ApiResponse<Recipe[]>> = await this.api.get('/recipes/popular');
+    return response.data;
+  }
+
+  async getRecipe(id: string): Promise<ApiResponse<Recipe>> {
+    const response: AxiosResponse<ApiResponse<Recipe>> = await this.api.get(`/recipes/${id}`);
+    return response.data;
+  }
+
+  async createRecipe(recipeData: Partial<Recipe>): Promise<Recipe> {
+    const response: AxiosResponse<ApiResponse<Recipe>> = await this.api.post('/recipes', recipeData);
+    return response.data.data;
+  }
+
+  async updateRecipe(id: string, recipeData: Partial<Recipe>): Promise<Recipe> {
+    const response: AxiosResponse<ApiResponse<Recipe>> = await this.api.put(`/recipes/${id}`, recipeData);
+    return response.data.data;
+  }
+
+  async deleteRecipe(id: string): Promise<void> {
+    await this.api.delete(`/recipes/${id}`);
+  }
+
+  async incrementRecipeUses(id: string): Promise<void> {
+    await this.api.post(`/recipes/${id}/increment-uses`);
   }
 }
 

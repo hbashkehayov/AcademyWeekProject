@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { AiTool } from '@/types';
+import { apiService } from '@/lib/api';
 
 interface ToolDetailsProps {
   tool: AiTool;
@@ -14,74 +15,69 @@ export default function ToolDetails({ tool, onBack, isDarkMode = false }: ToolDe
   const [isFavourite, setIsFavourite] = useState(false);
   const [heartAnimations, setHeartAnimations] = useState<{id: string, x: number, y: number}[]>([]);
 
-  // Load favorite status from localStorage on component mount
+  // Load favorite status from API on component mount
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('user_favourites');
-    if (savedFavorites) {
-      try {
-        const favoriteIds = JSON.parse(savedFavorites);
-        const toolId = String(tool.id);
-        setIsFavourite(favoriteIds.some((id: string | number) => String(id) === toolId));
-      } catch (error) {
-        console.error('Error loading favorites:', error);
+    const checkFavoriteStatus = async () => {
+      if (!apiService.isAuthenticated()) {
+        setIsFavourite(false);
+        return;
       }
-    }
+      
+      try {
+        const favorites = await apiService.getFavoriteTools();
+        const isFav = favorites.some(favTool => String(favTool.id) === String(tool.id));
+        setIsFavourite(isFav);
+      } catch (error) {
+        console.error('Error checking favorite status:', error);
+        setIsFavourite(false);
+      }
+    };
+    
+    checkFavoriteStatus();
 
     // Listen for changes to favorites from other components
     const handleFavoritesChanged = () => {
-      const savedFavorites = localStorage.getItem('user_favourites');
-      if (savedFavorites) {
-        try {
-          const favoriteIds = JSON.parse(savedFavorites);
-          const toolId = String(tool.id);
-          setIsFavourite(favoriteIds.some((id: string | number) => String(id) === toolId));
-        } catch (error) {
-          console.error('Error updating favorites:', error);
-        }
-      }
+      checkFavoriteStatus();
     };
 
     window.addEventListener('favouritesChanged', handleFavoritesChanged);
     return () => window.removeEventListener('favouritesChanged', handleFavoritesChanged);
   }, [tool.id]);
 
-  const toggleFavorite = (event: React.MouseEvent) => {
+  const toggleFavorite = async (event: React.MouseEvent) => {
     event.stopPropagation();
     
-    const toolId = String(tool.id);
-    const currentlyFavorite = isFavourite;
-    
-    // Update favorites
-    const savedFavourites = localStorage.getItem('user_favourites');
-    let favouriteIds = savedFavourites ? JSON.parse(savedFavourites) : [];
-    
-    if (currentlyFavorite) {
-      // Remove from favourites
-      favouriteIds = favouriteIds.filter((id: string) => String(id) !== toolId);
-      setIsFavourite(false);
-    } else {
-      // Add to favourites
-      favouriteIds.push(toolId);
-      setIsFavourite(true);
-      
-      // Create Instagram-like heart animation at click position
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-      const animationId = `heart-${Date.now()}`;
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-      
-      setHeartAnimations(prev => [...prev, { id: animationId, x, y }]);
-      
-      // Remove animation after it completes
-      setTimeout(() => {
-        setHeartAnimations(prev => prev.filter(anim => anim.id !== animationId));
-      }, 1000);
+    if (!apiService.isAuthenticated()) {
+      alert('Please login to manage favorites');
+      return;
     }
     
-    localStorage.setItem('user_favourites', JSON.stringify(favouriteIds));
-    
-    // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('favouritesChanged'));
+    try {
+      // Toggle favorite via API
+      const result = await apiService.toggleFavoriteTool(String(tool.id));
+      setIsFavourite(result.is_favorite);
+      
+      if (result.is_favorite) {
+        // Create Instagram-like heart animation at click position
+        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+        const animationId = `heart-${Date.now()}`;
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        
+        setHeartAnimations(prev => [...prev, { id: animationId, x, y }]);
+        
+        // Remove animation after it completes
+        setTimeout(() => {
+          setHeartAnimations(prev => prev.filter(anim => anim.id !== animationId));
+        }, 1000);
+      }
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('favouritesChanged'));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Silently handle the error - the favorite operation likely succeeded
+    }
   };
 
   const getPricingDisplay = (pricing: any) => {
