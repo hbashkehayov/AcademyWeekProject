@@ -24,10 +24,10 @@ interface Role {
 interface UserProfile {
   id: string;
   name: string;
-  display_name: string;
+  display_name?: string;
   email: string;
   phone_number?: string;
-  role: {
+  role?: {
     id: string;
     name: string;
     display_name: string;
@@ -36,7 +36,7 @@ interface UserProfile {
     id: string;
     name: string;
   };
-  two_factor_enabled: boolean;
+  two_factor_enabled?: boolean;
 }
 
 interface RoleChangeRequest {

@@ -7,6 +7,7 @@ import type { AiTool } from '@/types';
 interface FavouritesProps {
   onBack: () => void;
   onToolClick?: (tool: AiTool) => void;
+  refreshTrigger?: number;
 }
 
 interface HeartAnimation {

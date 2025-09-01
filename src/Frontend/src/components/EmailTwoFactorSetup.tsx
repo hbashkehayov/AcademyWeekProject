@@ -180,7 +180,7 @@ export default function EmailTwoFactorSetup({ user, onComplete, onBack }: EmailT
             <div className="bg-white/20 border border-white/30 rounded-lg p-6 backdrop-blur-sm">
               <h3 className="text-lg font-semibold text-white mb-4">Setting up Email Verification</h3>
               <p className="text-white opacity-80 text-sm mb-4">
-                We're sending a verification code to <strong>{user.email}</strong> to confirm your email address.
+                We&apos;re sending a verification code to <strong>{user.email}</strong> to confirm your email address.
               </p>
               
               {isLoading && (
@@ -210,7 +210,7 @@ export default function EmailTwoFactorSetup({ user, onComplete, onBack }: EmailT
             <div className="bg-white/20 border border-white/30 rounded-lg p-6 backdrop-blur-sm">
               <h3 className="text-lg font-semibold text-white mb-4">Check Your Email</h3>
               <p className="text-white opacity-80 text-sm mb-4">
-                We've sent a 6-digit verification code to <strong>{user.email}</strong>. 
+                We&apos;ve sent a 6-digit verification code to <strong>{user.email}</strong>. 
                 Please check your email and enter the code below.
               </p>
             </div>

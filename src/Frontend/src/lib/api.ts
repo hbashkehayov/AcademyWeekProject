@@ -28,6 +28,7 @@ class ApiService {
         'Accept': 'application/json',
       },
       withCredentials: true,
+      timeout: 10000, // 10 second timeout
     });
 
     // Add request interceptor for session-based authentication
@@ -166,8 +167,13 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<User> {
-    const response: AxiosResponse<User> = await this.api.get('/user');
-    return response.data;
+    try {
+      const response: AxiosResponse<User> = await this.api.get('/user');
+      return response.data;
+    } catch (error) {
+      console.log('getCurrentUser error:', error);
+      throw error;
+    }
   }
 
   // Profile Management

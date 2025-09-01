@@ -9,6 +9,7 @@ export interface User {
   role?: Role;
   organization?: Organization;
   email_verified_at?: string;
+  two_factor_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }

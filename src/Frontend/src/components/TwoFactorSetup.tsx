@@ -185,7 +185,7 @@ export default function TwoFactorSetup({ user, twoFactorData, onComplete, onBack
 
             {/* Manual Entry Option */}
             <div className="bg-white/20 border border-white/30 rounded-lg p-6 backdrop-blur-sm">
-              <h3 className="text-lg font-semibold text-white mb-4">Can't scan? Enter manually</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Can&apos;t scan? Enter manually</h3>
               <button
                 onClick={() => setShowSecret(!showSecret)}
                 className="text-white underline text-sm mb-2"

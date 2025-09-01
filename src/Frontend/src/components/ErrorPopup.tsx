@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 interface ErrorPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  onForgotPassword: () => void;
+  onForgotPassword?: () => void;
   message?: string;
 }
 
@@ -163,7 +163,7 @@ export default function ErrorPopup({ isOpen, onClose, onForgotPassword, message 
           <div className="space-y-3">
             {/* Forgot Password Button with Smooth Fade-in */}
             <button
-              onClick={onForgotPassword}
+              onClick={onForgotPassword || (() => {})}
               className={`
                 w-full py-3 px-6 rounded-full text-white font-semibold 
                 transition-all hover:scale-105

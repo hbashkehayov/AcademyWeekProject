@@ -302,7 +302,7 @@ export default function ToolDetails({ tool, onBack, isDarkMode = false }: ToolDe
                     📚 No detailed description available yet
                   </div>
                   <p className="text-sm text-white opacity-50">
-                    This tool's detailed description is being prepared. Check back soon!
+                    This tool&apos;s detailed description is being prepared. Check back soon!
                   </p>
                 </div>
               )}

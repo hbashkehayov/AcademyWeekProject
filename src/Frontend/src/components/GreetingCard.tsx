@@ -59,7 +59,7 @@ export default function GreetingCard({ user }: GreetingCardProps) {
           </h2>
           <div className="space-y-2">
             <p className="text-xl md:text-2xl text-white opacity-70">
-              You're signed in as a <span className="font-semibold text-white opacity-80">{roleDisplay}</span>
+              You&apos;re signed in as a <span className="font-semibold text-white opacity-80">{roleDisplay}</span>
             </p>
             <p className="text-base md:text-lg text-white opacity-60">
               {roleDescription}
@@ -80,7 +80,7 @@ export default function GreetingCard({ user }: GreetingCardProps) {
       {/* Welcome Message */}
       <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/20">
         <p className="text-white opacity-70 text-base md:text-lg leading-relaxed">
-          Welcome to your personalized sanctum dashboard! Here you'll find AI tools curated specifically for your role, 
+          Welcome to your personalized sanctum dashboard! Here you&apos;ll find AI tools curated specifically for your role, 
           manage your notes, and explore new tools to enhance your workflow. Everything you need is at your fingertips.
         </p>
       </div>

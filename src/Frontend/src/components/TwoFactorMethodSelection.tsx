@@ -37,7 +37,7 @@ export default function TwoFactorMethodSelection({ user, onMethodSelected }: Two
           Secure Your Account
         </h1>
         <p className="text-lg md:text-xl text-white opacity-80">
-          Choose how you'd like to secure your account
+          Choose how you&apos;d like to secure your account
         </p>
       </div>
 

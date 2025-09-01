@@ -589,7 +589,7 @@ export default function SuggestedTools({ userRole, userId, onViewRecommendations
                 {tool.match_reasons && tool.match_reasons.length > 0 && (
                   <div className="mb-4 sm:pl-16">
                     <p className="text-[11px] text-white/50 mb-1 uppercase tracking-wider font-medium">
-                      Why it's recommended:
+                      Why it&apos;s recommended:
                     </p>
                     <p className="text-sm text-white/80 italic leading-relaxed">
                       {tool.match_reasons[0]}

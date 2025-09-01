@@ -60,7 +60,7 @@ export default function RecoveryCodes({ recoveryCodes, onComplete }: RecoveryCod
             <h3 className="text-lg font-semibold text-amber-400 mb-2">Important!</h3>
             <p className="text-white opacity-80 text-sm">
               These recovery codes can be used to access your account if you lose your authenticator app. 
-              Store them in a safe place and don't share them with anyone.
+              Store them in a safe place and don&apos;t share them with anyone.
             </p>
           </div>
         </div>

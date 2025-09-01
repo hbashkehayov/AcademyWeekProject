@@ -37,9 +37,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             apiService.clearUserData(); // Clear localStorage without redirecting
             setUser(null);
           }
+        } else {
+          // No stored user, just set loading to false
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }

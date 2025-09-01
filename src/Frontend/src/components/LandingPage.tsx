@@ -206,7 +206,7 @@ export default function LandingPage() {
 
                 {/* Sign Up Link */}
                 <div className="text-white text-lg md:text-xl opacity-80">
-                  <span>Don't have an account? </span>
+                  <span>Don&apos;t have an account? </span>
                   <button
                     onClick={showRegister}
                     disabled={isTransitioning}

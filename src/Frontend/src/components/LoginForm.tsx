@@ -264,7 +264,7 @@ export default function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Log
       <div className="mt-8 space-y-4">
         {/* Sign Up Link */}
         <div className="text-center pt-6 border-t border-white/20">
-          <span className="text-white opacity-80 text-sm">Don't have an account? </span>
+          <span className="text-white opacity-80 text-sm">Don&apos;t have an account? </span>
           <button
             onClick={onSwitchToRegister}
             className="text-white font-semibold underline hover:no-underline transition-all duration-200 opacity-80"

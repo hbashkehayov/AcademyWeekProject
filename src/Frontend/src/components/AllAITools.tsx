@@ -402,7 +402,7 @@ export default function AllAITools({ onBack }: AllAIToolsProps) {
                 <span className="text-xs text-white opacity-60">Active filters:</span>
                 {searchQuery && (
                   <span className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-200 text-xs px-2 py-1 rounded-full">
-                    Search: "{searchQuery}"
+                    Search: &quot;{searchQuery}&quot;
                     <button
                       onClick={() => setSearchQuery('')}
                       className="hover:bg-purple-500/30 rounded-full p-0.5 transition-colors"
